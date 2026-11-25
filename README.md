@@ -1,154 +1,188 @@
-# Authenticated Diffie-Hellman MITM Simulator
+# Authenticated Diffie–Hellman MITM Simulator
 
-An educational cryptography and network-security mini project that demonstrates:
+> A hands-on Cryptography and Network Security mini project that shows why encryption alone is not enough—and how digital signatures stop a man-in-the-middle attack.
 
-1. a normal but unauthenticated Diffie-Hellman key exchange;
-2. a successful man-in-the-middle (MITM) attack; and
-3. prevention of that attack by authenticating ephemeral keys with digital signatures.
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.40%2B-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![Tests](https://img.shields.io/badge/tests-23%20passing-2E7D32)](#testing)
+[![Purpose](https://img.shields.io/badge/purpose-educational-2A6F73)](#security-scope)
 
-The implementation uses modern, real cryptographic primitives:
+## The idea in one minute
 
-- **X25519** for elliptic-curve Diffie-Hellman key exchange;
-- **Ed25519** for identity signatures;
-- **HKDF-SHA-256** for session-key derivation; and
-- **AES-256-GCM** for authenticated message encryption.
+Alice wants to send a private message to Bob. Diffie–Hellman lets them create the same secret key without sending that key across the network. The message can then be encrypted with AES-GCM.
 
-## Project highlights
+There is still a problem: ordinary Diffie–Hellman does not prove who supplied a public key. Mallory can stand between Alice and Bob, replace both public keys, and build two separate encrypted connections. Alice and Bob see encryption working, but Mallory can read and change the message.
 
-- **Clean academic interface** organized around the problem, experiment and conclusion.
-- **Instant light/dark theme switch** with matching contrast for cards, forms and results.
-- **One-click three-case comparison** presenting the complete story in the correct viva order.
-- **Interactive demonstration** for changing Alice's and Mallory's messages.
-- **Detailed protocol transcript** showing every actor, operation, security state and outcome.
-- **Persistent SQLite audit history** with scenario filters and CSV export.
-- **Lab-notebook experiment log** with chronological observations instead of dashboard counters.
-- **Interactive key-exchange playground** using small numbers to make Diffie-Hellman visible by hand.
-- **Privacy-conscious auditing:** only SHA-256 message digests are stored, never message plaintext.
-- **Downloadable evidence reports** containing algorithms, timings, conclusions and transcripts.
-- **Controlled benchmark lab** comparing normal, attacked and authenticated protocol costs.
-- **Command-line interface** plus an automated eight-step demonstration walkthrough.
-- **23 automated tests** covering cryptography, attack behavior, persistence, reports, themes and UI flows.
+This project runs that exact attack and then repeats it with **Ed25519 signatures**. Once the temporary Diffie–Hellman keys are signed, Mallory can no longer replace them without being detected.
 
-## Beginner explanation
+```mermaid
+flowchart LR
+    A[Alice] -->|X25519 public key| M[Mallory]
+    M -->|substituted key| B[Bob]
+    B -->|X25519 public key| M
+    M -->|substituted key| A
+    A -. "encrypted channel 1" .- M
+    M -. "encrypted channel 2" .- B
+```
 
-Alice and Bob want the same secret encryption key without sending the key itself.
-Diffie-Hellman makes that possible. However, basic Diffie-Hellman does not tell Alice
-whether a received public key really belongs to Bob. Mallory can replace the public
-keys and secretly create one encrypted connection with Alice and another with Bob.
+## What the experiment proves
 
-The protected version makes Alice and Bob sign their temporary X25519 public keys.
-A changed public key no longer matches its signature, so the MITM substitution is
-detected before any sensitive message is sent.
+| Case | What happens | Result |
+|---|---|---|
+| Normal exchange | Alice and Bob derive the same key and exchange an encrypted message. | Confidential against passive observers, but not authenticated. |
+| MITM attack | Mallory replaces both public keys, decrypts Alice's message, changes it, and re-encrypts it for Bob. | Attack succeeds. |
+| Authenticated defense | Alice and Bob sign their temporary X25519 keys using Ed25519 identity keys. | Mallory's substituted key fails signature verification. |
 
-## Application screens
+The important lesson is simple:
 
-The Streamlit application contains four sections:
+> **Encryption protects the contents of a message. Authentication proves who is on the other end. A secure channel needs both.**
 
-- **Project overview:** the question, three-case method and complete comparison;
-- **Live demonstration:** individual normal, attack and authenticated scenarios;
-- **Experiment log:** chronological observations, CSV audit export and timing study; and
-- **Key exchange playground:** a small-number Diffie-Hellman calculation you can change interactively.
+## Cryptography used
 
-## Run locally
+| Primitive | Role in the project |
+|---|---|
+| **X25519** | Creates a shared secret between two participants. |
+| **Ed25519** | Signs temporary public keys and verifies their owner. |
+| **HKDF-SHA-256** | Converts the X25519 shared secret into a 256-bit session key. |
+| **AES-256-GCM** | Encrypts the message and detects ciphertext tampering. |
+| **SHA-256** | Produces safe fingerprints and privacy-preserving audit digests. |
 
-Python 3.10 or newer is recommended.
+The project uses the implementations supplied by Python's `cryptography` package. It does not attempt to create custom cryptographic algorithms.
+
+## Application tour
+
+The Streamlit interface has four focused sections:
+
+- **Project overview** — introduces the question and runs all three scenarios side by side.
+- **Live demonstration** — lets you change Alice's message and Mallory's attempted replacement.
+- **Experiment log** — stores privacy-safe observations, supports CSV export, and compares timing.
+- **Key exchange playground** — uses deliberately small numbers so the Diffie–Hellman calculation can be followed by hand.
+
+Light and dark themes are included. Every simulation also produces a readable protocol transcript showing the actor, operation, detail, and security state at each step.
+
+## Quick start
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/purpoint/authenticated-diffie-hellman-mitm-simulator.git
+cd authenticated-diffie-hellman-mitm-simulator
+```
+
+### 2. Create a virtual environment
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+```
+
+On Windows PowerShell, activate it with:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+### 3. Install and run
+
+```bash
 python -m pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Streamlit will display a local URL, normally `http://localhost:8501`.
+Open the address printed by Streamlit, normally [http://localhost:8501](http://localhost:8501).
 
-## Command-line and automated demonstration
+## A good demonstration sequence
 
-Run the complete guided demonstration:
+1. Open **Live demonstration** and choose **Normal exchange**.
+2. Enter a message and run the simulation. Alice and Bob should have matching key fingerprints.
+3. Choose **MITM attack**, enter Mallory's replacement, and run it again. Bob receives the changed message.
+4. Choose **Authenticated defense** and try the same replacement. Bob receives Alice's original message because the substituted key is rejected.
+5. Expand **Technical details and protocol transcript** to explain exactly where the attack succeeds or fails.
+6. Use **Experiment log** to run repeated trials and export the observations for the project report.
+
+## Command-line use
+
+The same scenarios are available without the web interface.
 
 ```bash
+# Guided demonstration
 python main.py --demo
-```
 
-Run individual scenarios:
-
-```bash
-python main.py --scenario normal --message "Confidential message"
+# Individual scenarios
+python main.py --scenario normal --message "The meeting is at 10:00 AM"
 python main.py --scenario mitm --message "Pay Bob" --replacement "Pay Mallory"
-python main.py --scenario protected --message "Authenticated message"
-```
+python main.py --scenario protected --message "Pay Bob" --replacement "Pay Mallory"
 
-Inspect the persistent audit history or run a benchmark:
-
-```bash
+# Audit history and timing experiment
 python main.py --history
 python main.py --benchmark 50
 ```
 
-## Run tests
+## Project architecture
+
+```text
+Streamlit UI / CLI
+        |
+        v
+Simulation Service --------> SQLite Audit Database
+        |                    (digest and metadata only)
+        v
+Protocol Engine
+  |- X25519 key exchange
+  |- Ed25519 signatures
+  |- HKDF-SHA-256
+  `- AES-256-GCM
+```
+
+```text
+.
+├── app.py                       # Streamlit interface
+├── main.py                      # Command-line interface
+├── simulation_service.py        # Scenario orchestration, timing and auditing
+├── audit_database.py            # SQLite audit persistence
+├── report_generator.py          # Evidence and CSV exports
+├── demo_walkthrough.py          # Guided classroom demonstration
+├── crypto_simulator/
+│   └── protocol.py              # Cryptographic operations and scenarios
+├── docs/
+│   ├── ARCHITECTURE.md          # Design and methodology
+│   ├── PROJECT_REPORT.md        # Ready-to-study project report
+│   └── VIVA_GUIDE.md            # Viva questions and concise answers
+└── tests/                        # Automated test suite
+```
+
+## Testing
+
+Install the development requirements and run the complete suite:
 
 ```bash
-source .venv/bin/activate
 python -m pip install -r requirements-dev.txt
 pytest -q
 ```
 
-## Recommended classroom demonstration
+The **23 automated tests** cover key agreement, AES-GCM delivery, successful MITM substitution, signature-based rejection, invalid inputs, audit privacy, reports, benchmarks, themes, and Streamlit flows.
 
-1. Enter a message in the **Live demonstration** tab.
-2. Run the normal scenario and point out the matching session-key fingerprints.
-3. Run the MITM scenario and show that Mallory reads and modifies the message.
-4. Run the authenticated scenario and show that the substituted key is rejected.
-5. Run 20 experiment rounds and capture the table and chart for the report.
+## Documentation
 
-Do not display real private keys. The application intentionally shows only short
-SHA-256 fingerprints for comparison.
+- [Architecture and methodology](docs/ARCHITECTURE.md)
+- [Mini-project report](docs/PROJECT_REPORT.md)
+- [Viva preparation guide](docs/VIVA_GUIDE.md)
 
-## Project structure
+## Privacy choices
 
-```text
-.
-├── app.py                         # Professional Streamlit security dashboard
-├── main.py                        # CLI entry point
-├── demo_walkthrough.py            # Automated eight-step presentation
-├── audit_database.py              # SQLite audit persistence
-├── simulation_service.py          # Timing, orchestration and safe audit recording
-├── report_generator.py            # TXT evidence and CSV audit exports
-├── crypto_simulator/
-│   ├── __init__.py
-│   └── protocol.py                # Cryptographic protocol and simulations
-├── data/                           # Runtime SQLite database (ignored by Git)
-├── reports/                        # Runtime report exports (ignored by Git)
-├── docs/
-│   ├── ARCHITECTURE.md
-│   ├── PROJECT_REPORT.md
-│   └── VIVA_GUIDE.md
-├── tests/
-│   ├── test_protocol.py
-│   ├── test_simulation_service.py
-│   ├── test_audit_database.py
-│   ├── test_report_generator.py
-│   └── test_app.py
-├── requirements.txt
-└── requirements-dev.txt
-```
+The audit database never stores Alice's plaintext message. It records only a SHA-256 digest, scenario, duration, result, and non-secret metadata. Private keys, raw shared secrets, and session keys stay in memory and are never displayed or persisted.
 
 ## Security scope
 
-This is a controlled educational simulation. Identity and session keys exist only in memory and
-are regenerated for each run. A production system additionally needs certificates or
-a trusted key directory, secure persistent key storage, replay protection across
-sessions, protocol version negotiation, audit logging, and independent security review.
+This is an educational simulator, not a production messaging system. Identity keys are generated in memory for each run, and prior trust between Alice and Bob is simulated. A real system would also need certificate or key-distribution infrastructure, secure long-term key storage, replay protection, protocol negotiation, operational monitoring, and an independent security review.
 
-The SQLite audit database does not store submitted plaintext. It stores only a SHA-256
-digest, scenario, timing, outcome and non-secret metadata. Raw private keys and session
-keys are never rendered in the interface, written to logs or persisted.
+## References
 
-## Technical references
+- [RFC 7748 — Elliptic Curves for Security](https://www.rfc-editor.org/rfc/rfc7748) (X25519)
+- [RFC 8032 — Edwards-Curve Digital Signature Algorithm](https://www.rfc-editor.org/rfc/rfc8032) (Ed25519)
+- [RFC 5869 — HMAC-based Extract-and-Expand Key Derivation Function](https://www.rfc-editor.org/rfc/rfc5869) (HKDF)
+- [NIST SP 800-38D — Galois/Counter Mode](https://csrc.nist.gov/pubs/sp/800/38/d/final) (AES-GCM)
 
-- RFC 7748: Elliptic Curves for Security (X25519)
-- RFC 8032: Edwards-Curve Digital Signature Algorithm (Ed25519)
-- RFC 5869: HMAC-based Extract-and-Expand Key Derivation Function (HKDF)
-- NIST SP 800-38D: Galois/Counter Mode (GCM)
-- `cryptography` Python library documentation
+---
 
+Built as a BCS703 Cryptography and Network Security mini project.
