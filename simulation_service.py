@@ -79,9 +79,16 @@ class SimulationService:
             "MITM Attack", message, simulate_mitm_attack, replacement
         )
 
-    def run_authenticated(self, message: str) -> dict[str, object]:
+    def run_authenticated(
+        self,
+        message: str,
+        attempted_replacement: str | None = None,
+    ) -> dict[str, object]:
         return self._execute(
-            "Authenticated Defense", message, simulate_authenticated_exchange
+            "Authenticated Defense",
+            message,
+            simulate_authenticated_exchange,
+            *([attempted_replacement] if attempted_replacement is not None else []),
         )
 
     def run_complete_demo(
@@ -92,6 +99,6 @@ class SimulationService:
         return [
             self.run_normal(message),
             self.run_mitm(message, replacement),
-            self.run_authenticated(message),
+            self.run_authenticated(message, replacement),
         ]
 

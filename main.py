@@ -56,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
         _print_result(service.run_mitm(args.message, args.replacement))
         return 0
     if args.scenario == "protected":
-        _print_result(service.run_authenticated(args.message))
+        _print_result(service.run_authenticated(args.message, args.replacement))
         return 0
     if args.history:
         print(json.dumps(service.database.get_history(limit=30), indent=2))

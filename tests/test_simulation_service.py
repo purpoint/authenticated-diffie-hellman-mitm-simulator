@@ -32,9 +32,10 @@ def test_attack_records_exposure_without_plaintext(tmp_path: Path) -> None:
 
 def test_authenticated_run_records_blocked_attack(tmp_path: Path) -> None:
     service = make_service(tmp_path)
-    result = service.run_authenticated("signed exchange")
+    result = service.run_authenticated("signed exchange", "forged message")
     assert result["outcome"] == "ATTACK BLOCKED"
     assert result["attack_blocked"] is True
+    assert result["mallory_attempted_message"] == "forged message"
     assert service.database.get_statistics()["attacks_blocked"] == 1
 
 

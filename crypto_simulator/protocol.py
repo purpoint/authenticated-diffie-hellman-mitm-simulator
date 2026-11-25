@@ -248,10 +248,18 @@ def simulate_mitm_attack(message: str, replacement_message: str | None = None) -
     }
 
 
-def simulate_authenticated_exchange(message: str) -> dict[str, object]:
+def simulate_authenticated_exchange(
+    message: str,
+    attempted_replacement: str | None = None,
+) -> dict[str, object]:
     """Authenticate ephemeral keys with Ed25519, block substitution, then communicate."""
 
     message = _require_message(message)
+    attempted_replacement = (
+        _require_message(attempted_replacement)
+        if attempted_replacement is not None
+        else "No replacement message supplied"
+    )
     alice_identity = Ed25519PrivateKey.generate()
     bob_identity = Ed25519PrivateKey.generate()
     alice_ephemeral = _new_ephemeral_key_pair()
@@ -302,6 +310,8 @@ def simulate_authenticated_exchange(message: str) -> dict[str, object]:
         "scenario": "Authenticated exchange with blocked MITM attack",
         "sent_message": message,
         "received_message": received_message,
+        "mallory_attempted_message": attempted_replacement,
+        "replacement_blocked": True,
         "attack_blocked": attack_blocked,
         "signatures_valid": True,
         "keys_match": alice_key == bob_key,
@@ -315,7 +325,7 @@ def simulate_authenticated_exchange(message: str) -> dict[str, object]:
         "transcript": [
             _event(1, "Alice + Bob", "Generate identity and X25519 keys", "Long-term Ed25519 identities authenticate fresh X25519 keys."),
             _event(2, "Alice + Bob", "Sign ephemeral public keys", "Signatures cover protocol context, identities, salt and exact key bytes."),
-            _event(3, "Mallory", "Substitute Alice's X25519 key", "Mallory replays Alice's signature beside a different public key.", "DANGER"),
+            _event(3, "Mallory", "Attempt key substitution", f"Mallory substitutes a key and plans to send {attempted_replacement!r}.", "DANGER"),
             _event(4, "Bob", "Verify Ed25519 signature", "Verification fails because the signed key bytes were changed.", "SUCCESS"),
             _event(5, "Alice + Bob", "Accept genuine signed keys", "Both authentic signatures verify successfully.", "SUCCESS"),
             _event(6, "Alice + Bob", "X25519 + HKDF-SHA-256", "Both derive the same authenticated session key."),

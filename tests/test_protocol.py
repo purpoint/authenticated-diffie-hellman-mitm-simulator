@@ -32,12 +32,16 @@ def test_mitm_can_read_and_replace_message() -> None:
 
 
 def test_authenticated_exchange_rejects_substituted_key() -> None:
-    result = simulate_authenticated_exchange("Authenticated hello")
+    result = simulate_authenticated_exchange(
+        "Authenticated hello", "Mallory's attempted replacement"
+    )
 
     assert result["attack_blocked"] is True
     assert result["signatures_valid"] is True
     assert result["keys_match"] is True
     assert result["received_message"] == "Authenticated hello"
+    assert result["mallory_attempted_message"] == "Mallory's attempted replacement"
+    assert result["replacement_blocked"] is True
 
 
 @pytest.mark.parametrize(

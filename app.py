@@ -158,6 +158,30 @@ st.markdown(
     .calculation-box {background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: .85rem 1rem; color: var(--text);}
     .calculation-box strong {display: block; margin-bottom: .35rem; color: var(--heading);}
     .calculation-box span {font-family: ui-monospace, SFMono-Regular, Menlo, monospace;}
+    .comparison-list {border: 1px solid var(--border); border-radius: 6px; overflow: hidden;}
+    .comparison-row {display: grid; grid-template-columns: 160px 125px 85px minmax(0, 1fr); gap: .75rem; padding: .8rem .9rem; border-bottom: 1px solid var(--border); align-items: start;}
+    .comparison-row:last-child {border-bottom: 0;}
+    .comparison-heading {font-size: .73rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em;}
+    .comparison-value {color: var(--text); line-height: 1.45; overflow-wrap: anywhere;}
+    .trace-list {border: 1px solid var(--border); border-radius: 6px; overflow: hidden;}
+    .trace-row {display: grid; grid-template-columns: 38px minmax(0, 1fr) 82px; gap: .8rem; padding: .78rem .85rem; border-bottom: 1px solid var(--border); align-items: start;}
+    .trace-row:last-child {border-bottom: 0;}
+    .trace-step {width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .78rem;}
+    .trace-title {color: var(--heading); font-weight: 700; margin-bottom: .18rem; overflow-wrap: anywhere;}
+    .trace-actor {color: var(--accent); font-size: .78rem; font-weight: 650; margin-left: .35rem;}
+    .trace-detail {color: var(--muted); font-size: .86rem; line-height: 1.45; overflow-wrap: anywhere;}
+    .trace-state {font-size: .7rem; font-weight: 700; border-radius: 999px; padding: .22rem .42rem; text-align: center; justify-self: end;}
+    .trace-info {background: var(--surface-soft); color: var(--muted);}
+    .trace-warning {background: var(--caution-bg); color: var(--caution-text);}
+    .trace-danger {background: var(--danger-bg); color: var(--danger-text);}
+    .trace-success {background: var(--safe-bg); color: var(--safe-text);}
+    .mode-note {background: var(--surface-soft); border: 1px solid var(--border); border-radius: 6px; padding: .9rem 1rem; min-height: 100px; color: var(--muted); line-height: 1.5;}
+    @media (max-width: 760px) {
+        .comparison-row {grid-template-columns: 1fr 1fr;}
+        .comparison-row > div:last-child {grid-column: 1 / -1;}
+        .trace-row {grid-template-columns: 38px minmax(0, 1fr);}
+        .trace-state {grid-column: 2; justify-self: start;}
+    }
     .secret-box {background: var(--safe-bg); border: 1px solid var(--safe-border); border-radius: 6px; padding: 1rem; color: var(--safe-text); text-align: center; margin: 1rem 0;}
     .secret-value {font-family: Georgia, serif; font-size: 1.9rem; font-weight: 700; margin-top: .2rem;}
     hr {border-color: var(--border);}
@@ -184,7 +208,7 @@ def run_selected(mode: str, message: str, replacement: str) -> dict[str, object]
         return service.run_normal(message)
     if mode == "MITM attack":
         return service.run_mitm(message, replacement)
-    return service.run_authenticated(message)
+    return service.run_authenticated(message, replacement)
 
 
 def outcome_box(result: dict[str, object]) -> None:
@@ -258,7 +282,16 @@ def show_network(result: dict[str, object]) -> None:
         party_card(bob, "Bob", "Received a valid AES-GCM message, but it came from Mallory rather than Alice.", alert=True)
     elif result["scenario_label"] == "Authenticated Defense":
         party_card(alice, "Alice", "Signed her temporary X25519 key using her Ed25519 identity key.")
-        party_card(middle, "Untrusted network", "Mallory may intercept traffic, but cannot forge Alice's signature.")
+        party_card(
+            middle,
+            "Mallory's attempt",
+            "Mallory substitutes a public key, but cannot forge Alice's signature.",
+            alert=True,
+            note=(
+                "Attempted message: "
+                f"{result.get('mallory_attempted_message', 'blocked before delivery')}"
+            ),
+        )
         party_card(bob, "Bob", "Verified the signature before deriving and using the session key.")
     else:
         party_card(alice, "Alice", "Generated a temporary X25519 key and encrypted the message.")
@@ -268,18 +301,40 @@ def show_network(result: dict[str, object]) -> None:
 
 def transcript_table(result: dict[str, object]) -> None:
     transcript = result.get("transcript", [])
-    st.dataframe(
-        transcript,
-        width="stretch",
-        hide_index=True,
-        column_config={
-            "Step": st.column_config.NumberColumn(width="small"),
-            "Actor": st.column_config.TextColumn(width="medium"),
-            "Operation": st.column_config.TextColumn(width="medium"),
-            "Detail": st.column_config.TextColumn(width="large"),
-            "State": st.column_config.TextColumn(width="small"),
-        },
+    rows: list[str] = []
+    for entry in transcript:
+        state = str(entry["State"]).lower()
+        state_class = state if state in {"info", "warning", "danger", "success"} else "info"
+        rows.append(
+            '<div class="trace-row">'
+            f'<div class="trace-step">{int(entry["Step"])}</div>'
+            '<div>'
+            f'<div class="trace-title">{escape(str(entry["Operation"]))}'
+            f'<span class="trace-actor">{escape(str(entry["Actor"]))}</span></div>'
+            f'<div class="trace-detail">{escape(str(entry["Detail"]))}</div>'
+            '</div>'
+            f'<div class="trace-state trace-{state_class}">{escape(str(entry["State"]))}</div>'
+            '</div>'
+        )
+    st.markdown('<div class="trace-list">' + "".join(rows) + "</div>", unsafe_allow_html=True)
+
+
+def render_comparison(results: list[dict[str, object]]) -> None:
+    header = (
+        '<div class="comparison-row comparison-heading">'
+        '<div>Case</div><div>Result</div><div>Time</div><div>What it showed</div></div>'
     )
+    rows: list[str] = []
+    for result in results:
+        rows.append(
+            '<div class="comparison-row comparison-value">'
+            f'<div><strong>{escape(str(result["scenario_label"]))}</strong></div>'
+            f'<div>{escape(str(result["outcome"]).title())}</div>'
+            f'<div>{float(result["duration_ms"]):.4f} ms</div>'
+            f'<div>{escape(str(result["security_result"]))}</div>'
+            '</div>'
+        )
+    st.markdown('<div class="comparison-list">' + header + "".join(rows) + "</div>", unsafe_allow_html=True)
 
 
 def history_description(row: dict[str, object]) -> tuple[str, str, str]:
@@ -396,16 +451,7 @@ with overview_tab:
             st.error(str(exc))
     if st.session_state.get("comparison_results"):
         st.markdown("#### Comparison")
-        rows = [
-            {
-                "Case": result["scenario_label"],
-                "Result": result["outcome"].title(),
-                "Time (ms)": result["duration_ms"],
-                "Explanation": result["security_result"],
-            }
-            for result in st.session_state["comparison_results"]
-        ]
-        st.dataframe(rows, width="stretch", hide_index=True)
+        render_comparison(st.session_state["comparison_results"])
 
 with demo_tab:
     st.markdown("### Try one case at a time")
@@ -418,13 +464,31 @@ with demo_tab:
     )
     left, right = st.columns(2)
     message = left.text_area("Alice's message", "The meeting is at 10:00 AM", height=100, key="demo_message")
-    replacement = right.text_area(
-        "Mallory's replacement message",
-        "The meeting is cancelled",
-        height=100,
-        disabled=mode != "MITM attack",
-        key="demo_replacement",
-    )
+    if mode == "Normal exchange":
+        replacement = ""
+        right.markdown("**Mallory's message**")
+        right.markdown(
+            '<div class="mode-note"><strong>Not used in this case.</strong><br>'
+            'The normal exchange contains only Alice and Bob, so there is no attacker '
+            'trying to replace the message.</div>',
+            unsafe_allow_html=True,
+        )
+    elif mode == "MITM attack":
+        replacement = right.text_area(
+            "Mallory's replacement message",
+            "The meeting is cancelled",
+            height=100,
+            key="mitm_replacement",
+        )
+    else:
+        replacement = right.text_area(
+            "Mallory's attempted replacement",
+            "The meeting is cancelled",
+            height=100,
+            help="You can change this text, but authentication stops it before Bob receives it.",
+            key="authenticated_replacement",
+        )
+        right.caption("This is Mallory's intended message. The signature failure prevents it from being delivered.")
     if st.button("Run simulation", type="primary", key="run_simulation"):
         try:
             st.session_state["last_result"] = run_selected(mode, message, replacement)
