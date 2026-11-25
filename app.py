@@ -44,6 +44,8 @@ theme = (
         "caution_bg": "#392f1d",
         "caution_border": "#786437",
         "caution_text": "#f5dda0",
+        "sun_icon": "#6f808a",
+        "moon_icon": "#8adad4",
     }
     if dark_mode
     else {
@@ -68,6 +70,8 @@ theme = (
         "caution_bg": "#faf2dc",
         "caution_border": "#e2d09e",
         "caution_text": "#765d1e",
+        "sun_icon": "#b7761d",
+        "moon_icon": "#8a979c",
     }
 )
 
@@ -169,9 +173,19 @@ st.markdown(
     [data-testid="stSelectbox"] svg, [data-testid="stNumberInput"] button svg {fill: var(--text) !important;}
     [data-baseweb="select"] span {color: var(--text) !important;}
     [data-testid="stSlider"] [role="slider"] {background: var(--accent) !important;}
-    .theme-icon {color: var(--muted); font-size: 1.08rem; line-height: 2.1rem; text-align: center; user-select: none;}
-    [data-testid="stToggle"] {padding-top: .12rem;}
-    [data-testid="stToggle"] label {justify-content: center;}
+    .theme-glyph {
+        width: 30px; height: 30px; border-radius: 50%; display: flex;
+        align-items: center; justify-content: center; margin: 0 auto;
+        color: var(--muted); border: 1px solid transparent;
+        font-family: Georgia, serif; font-size: 1.08rem; line-height: 1;
+        font-weight: 700; user-select: none;
+    }
+    .theme-glyph-active {
+        color: var(--accent); background: var(--accent-soft); border-color: var(--border);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
+    }
+    [data-testid="stToggle"] {padding-top: .1rem;}
+    [data-testid="stToggle"] label {justify-content: center; cursor: pointer;}
     .log-summary {background: var(--surface-soft); border: 1px solid var(--border); border-radius: 6px; padding: .9rem 1rem; color: var(--text); margin-bottom: 1rem;}
     .log-entry {display: grid; grid-template-columns: 105px 1fr 100px; gap: 1rem; align-items: center; padding: .85rem .2rem; border-bottom: 1px solid var(--border);}
     .log-entry:last-child {border-bottom: 0;}
@@ -222,13 +236,23 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-theme_space, light_icon, theme_switch, dark_icon = st.columns([10, .35, .65, .35])
+sun_state = "theme-glyph-active" if not dark_mode else ""
+moon_state = "theme-glyph-active" if dark_mode else ""
+theme_space, light_icon, theme_switch, dark_icon = st.columns(
+    [10, .34, .48, .34], gap=None, vertical_alignment="center"
+)
 with light_icon:
-    st.markdown('<div class="theme-icon" title="Light theme">☀️</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="theme-glyph {sun_state}" title="Light theme">☼</div>',
+        unsafe_allow_html=True,
+    )
 with theme_switch:
     st.toggle("Theme", key="dark_mode", label_visibility="collapsed")
 with dark_icon:
-    st.markdown('<div class="theme-icon" title="Dark theme">🌙</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="theme-glyph {moon_state}" title="Dark theme">☾</div>',
+        unsafe_allow_html=True,
+    )
 
 
 @st.cache_resource
