@@ -108,6 +108,24 @@ def _require_message(message: str) -> str:
     return cleaned
 
 
+def _event(
+    step: int,
+    actor: str,
+    operation: str,
+    detail: str,
+    state: str = "INFO",
+) -> dict[str, object]:
+    """Create one display-safe protocol transcript entry."""
+
+    return {
+        "Step": step,
+        "Actor": actor,
+        "Operation": operation,
+        "Detail": detail,
+        "State": state,
+    }
+
+
 def simulate_normal_exchange(message: str) -> dict[str, object]:
     """Run an honest but unauthenticated X25519 + AES-GCM exchange."""
 
@@ -136,6 +154,14 @@ def simulate_normal_exchange(message: str) -> dict[str, object]:
         "security_result": (
             "Confidential against passive observers, but vulnerable to active public-key substitution."
         ),
+        "transcript": [
+            _event(1, "Alice", "Generate X25519 key pair", "Creates a fresh private/public key pair."),
+            _event(2, "Bob", "Generate X25519 key pair", "Creates a fresh private/public key pair."),
+            _event(3, "Network", "Exchange public keys", "Public keys travel without identity proof.", "WARNING"),
+            _event(4, "Alice + Bob", "X25519 + HKDF-SHA-256", "Both independently derive the same 256-bit session key."),
+            _event(5, "Alice", "AES-256-GCM encryption", "Encrypts the plaintext with a fresh 96-bit nonce."),
+            _event(6, "Bob", "AES-256-GCM decryption", "Authentication succeeds and the original message is recovered.", "SUCCESS"),
+        ],
     }
 
 
@@ -209,6 +235,16 @@ def simulate_mitm_attack(message: str, replacement_message: str | None = None) -
         "security_result": (
             "Attack successful: encryption alone did not prove who owned the exchanged public keys."
         ),
+        "transcript": [
+            _event(1, "Alice + Bob", "Generate X25519 key pairs", "Both create fresh ephemeral keys."),
+            _event(2, "Mallory", "Intercept public keys", "Mallory prevents the genuine public keys from reaching their destination.", "DANGER"),
+            _event(3, "Mallory", "Substitute two public keys", "Alice receives Mallory key A; Bob receives Mallory key B.", "DANGER"),
+            _event(4, "Alice + Mallory", "Derive channel key A", "Alice unknowingly shares a valid AES key with Mallory.", "DANGER"),
+            _event(5, "Mallory + Bob", "Derive channel key B", "Bob unknowingly shares a different AES key with Mallory.", "DANGER"),
+            _event(6, "Mallory", "Decrypt Alice's ciphertext", f"Plaintext exposed: {intercepted_message!r}.", "DANGER"),
+            _event(7, "Mallory", "Modify and re-encrypt", f"Replacement plaintext: {replacement_message!r}.", "DANGER"),
+            _event(8, "Bob", "Accept forged message", "AES-GCM is valid because Mallory knows channel key B.", "DANGER"),
+        ],
     }
 
 
@@ -276,6 +312,16 @@ def simulate_authenticated_exchange(message: str) -> dict[str, object]:
         "security_result": (
             "Attack blocked: the substituted ephemeral key failed Ed25519 signature verification."
         ),
+        "transcript": [
+            _event(1, "Alice + Bob", "Generate identity and X25519 keys", "Long-term Ed25519 identities authenticate fresh X25519 keys."),
+            _event(2, "Alice + Bob", "Sign ephemeral public keys", "Signatures cover protocol context, identities, salt and exact key bytes."),
+            _event(3, "Mallory", "Substitute Alice's X25519 key", "Mallory replays Alice's signature beside a different public key.", "DANGER"),
+            _event(4, "Bob", "Verify Ed25519 signature", "Verification fails because the signed key bytes were changed.", "SUCCESS"),
+            _event(5, "Alice + Bob", "Accept genuine signed keys", "Both authentic signatures verify successfully.", "SUCCESS"),
+            _event(6, "Alice + Bob", "X25519 + HKDF-SHA-256", "Both derive the same authenticated session key."),
+            _event(7, "Alice", "AES-256-GCM encryption", "Encrypts the message with authenticated context."),
+            _event(8, "Bob", "Authenticated decryption", "Bob receives the original message; Mallory has no session key.", "SUCCESS"),
+        ],
     }
 
 

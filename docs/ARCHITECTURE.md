@@ -1,5 +1,25 @@
 # System Architecture and Methodology
 
+## Application architecture
+
+```text
+Streamlit Dashboard ─┐
+CLI / Guided Demo ───┼──> Simulation Service ──> Protocol Engine
+                     │            │                    │
+                     │            │                    ├─ X25519
+                     │            │                    ├─ Ed25519
+                     │            │                    ├─ HKDF-SHA-256
+                     │            │                    └─ AES-256-GCM
+                     │            │
+                     │            ├──> SQLite Audit Database
+                     │            └──> Evidence / CSV Report Generator
+                     └────────────────> Benchmark and Protocol Inspector
+```
+
+The protocol module contains cryptographic operations only. The service layer adds
+timing and safe persistence. Presentation layers call the service rather than directly
+duplicating security logic. This separation improves correctness and testability.
+
 ## 1. Participants
 
 - **Alice:** initiates a confidential message.
@@ -91,4 +111,18 @@ or Bob's Ed25519 private identity key or break the underlying algorithms. Denial
 service is not prevented: an attacker can still drop messages. The simulator uses
 in-memory identity keys and models prior trust; it does not implement a certificate
 authority or persistent key store.
+
+## 8. Audit and privacy design
+
+Every dashboard or CLI scenario creates a SQLite audit record containing the scenario,
+outcome, execution time, attack flags and SHA-256 digest of the input message. Plaintext,
+private keys, raw ECDH shared secrets and AES session keys are never persisted. JSON
+metadata contains only algorithm names, transcript length and ciphertext length.
+
+## 9. Verification strategy
+
+The automated suite validates matching ECDH keys, successful message delivery, Mallory's
+ability to read and replace unauthenticated traffic, rejection of substituted signed keys,
+SQLite filtering and statistics, plaintext-free audits, report exports, invalid inputs,
+benchmark bounds and every interactive Streamlit scenario.
 

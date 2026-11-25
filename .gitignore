@@ -6,4 +6,8 @@ __pycache__/
 .DS_Store
 .streamlit/secrets.toml
 tmp/
+data/*.db
+data/*.db-*
+reports/*.txt
+reports/*.csv
 

@@ -65,11 +65,16 @@ screen capture of each application scenario.
 
 The project is implemented in Python. The `cryptography` package supplies X25519,
 Ed25519, HKDF-SHA-256 and AES-GCM. `crypto_simulator/protocol.py` contains independent
-functions for normal exchange, MITM attack and authenticated exchange. `app.py` provides
-the Streamlit interface. Automated tests check the expected security properties.
+functions for normal exchange, MITM attack and authenticated exchange. A service layer
+coordinates timing and audit persistence. The Streamlit dashboard provides mission
+control, an interactive attack lab, protocol inspection, persistent history, CSV/TXT
+exports, benchmarks and integrated viva preparation. A separate CLI and automated
+walkthrough allow headless demonstrations.
 
 Private keys remain in memory. The interface displays only short SHA-256 fingerprints,
-not the actual shared secrets or AES keys.
+not the actual shared secrets or AES keys. SQLite audit rows store message hashes instead
+of plaintext. The automated suite contains 22 cryptographic, integration, persistence,
+reporting and user-interface tests.
 
 ## 6. Experimental procedure
 

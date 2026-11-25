@@ -13,6 +13,19 @@ The implementation uses modern, real cryptographic primitives:
 - **HKDF-SHA-256** for session-key derivation; and
 - **AES-256-GCM** for authenticated message encryption.
 
+## Project highlights
+
+- **Professional security operations dashboard** with five focused work areas and live KPI cards.
+- **One-click attack/defense mission** presenting the complete story in the correct viva order.
+- **Interactive red-team lab** for changing Alice's and Mallory's messages.
+- **Detailed protocol transcript** showing every actor, operation, security state and outcome.
+- **Persistent SQLite audit history** with scenario filters and CSV export.
+- **Privacy-conscious auditing:** only SHA-256 message digests are stored, never message plaintext.
+- **Downloadable evidence reports** containing algorithms, timings, conclusions and transcripts.
+- **Controlled benchmark lab** comparing normal, attacked and authenticated protocol costs.
+- **Command-line interface** plus an automated eight-step demonstration walkthrough.
+- **22 automated tests** covering cryptography, attack behavior, persistence, reports and UI flows.
+
 ## Beginner explanation
 
 Alice and Bob want the same secret encryption key without sending the key itself.
@@ -46,6 +59,29 @@ streamlit run app.py
 
 Streamlit will display a local URL, normally `http://localhost:8501`.
 
+## Command-line and automated demonstration
+
+Run the complete guided demonstration:
+
+```bash
+python main.py --demo
+```
+
+Run individual scenarios:
+
+```bash
+python main.py --scenario normal --message "Confidential message"
+python main.py --scenario mitm --message "Pay Bob" --replacement "Pay Mallory"
+python main.py --scenario protected --message "Authenticated message"
+```
+
+Inspect the persistent audit history or run a benchmark:
+
+```bash
+python main.py --history
+python main.py --benchmark 50
+```
+
 ## Run tests
 
 ```bash
@@ -69,26 +105,41 @@ SHA-256 fingerprints for comparison.
 
 ```text
 .
-├── app.py                         # Streamlit user interface
+├── app.py                         # Professional Streamlit security dashboard
+├── main.py                        # CLI entry point
+├── demo_walkthrough.py            # Automated eight-step presentation
+├── audit_database.py              # SQLite audit persistence
+├── simulation_service.py          # Timing, orchestration and safe audit recording
+├── report_generator.py            # TXT evidence and CSV audit exports
 ├── crypto_simulator/
 │   ├── __init__.py
 │   └── protocol.py                # Cryptographic protocol and simulations
+├── data/                           # Runtime SQLite database (ignored by Git)
+├── reports/                        # Runtime report exports (ignored by Git)
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── PROJECT_REPORT.md
 │   └── VIVA_GUIDE.md
 ├── tests/
-│   └── test_protocol.py
+│   ├── test_protocol.py
+│   ├── test_simulation_service.py
+│   ├── test_audit_database.py
+│   ├── test_report_generator.py
+│   └── test_app.py
 ├── requirements.txt
 └── requirements-dev.txt
 ```
 
 ## Security scope
 
-This is a controlled educational simulation. Identity keys exist only in memory and
+This is a controlled educational simulation. Identity and session keys exist only in memory and
 are regenerated for each run. A production system additionally needs certificates or
 a trusted key directory, secure persistent key storage, replay protection across
 sessions, protocol version negotiation, audit logging, and independent security review.
+
+The SQLite audit database does not store submitted plaintext. It stores only a SHA-256
+digest, scenario, timing, outcome and non-secret metadata. Raw private keys and session
+keys are never rendered in the interface, written to logs or persisted.
 
 ## Technical references
 
