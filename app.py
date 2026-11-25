@@ -1,8 +1,9 @@
-"""Professional Streamlit dashboard for the authenticated key-exchange project."""
+"""Streamlit interface for the Diffie-Hellman MITM mini project."""
 
 from __future__ import annotations
 
 from datetime import datetime
+from html import escape
 
 import streamlit as st
 
@@ -13,39 +14,70 @@ from simulation_service import SimulationService
 
 
 st.set_page_config(
-    page_title="ADH Security Lab",
-    page_icon="🛡️",
+    page_title="Diffie-Hellman MITM Demonstration",
+    page_icon=":material/lock:",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 st.markdown(
     """
     <style>
-    :root {--panel:#0f1d2e;--border:#253b52;--cyan:#22d3ee;--green:#34d399;
-    --red:#fb7185;--amber:#fbbf24;--text:#eef6ff;--muted:#93a8bd;}
-    .stApp {background:radial-gradient(circle at 85% 0%,rgba(34,211,238,.08),transparent 30rem),linear-gradient(180deg,#07111f 0%,#0a1625 100%);}
-    [data-testid="stSidebar"] {background:linear-gradient(180deg,#0b1727 0%,#08121f 100%);border-right:1px solid var(--border);}
-    [data-testid="stHeader"] {background:transparent;}
-    .block-container {max-width:1440px;padding-top:1.5rem;}
-    .hero {padding:1.5rem 1.65rem;border:1px solid var(--border);border-radius:18px;background:linear-gradient(135deg,rgba(20,38,58,.96),rgba(10,25,42,.96));box-shadow:0 18px 60px rgba(0,0,0,.22);margin-bottom:1rem;}
-    .hero-kicker {color:var(--cyan);font-weight:750;letter-spacing:.12em;font-size:.78rem;}
-    .hero h1 {color:var(--text);margin:.35rem 0 .25rem;font-size:2.15rem;letter-spacing:-.035em;}
-    .hero p {color:var(--muted);margin:0;max-width:900px;font-size:1.02rem;}
-    .chip {display:inline-block;margin:.85rem .38rem 0 0;padding:.28rem .6rem;border-radius:999px;border:1px solid #31506d;color:#cbeafe;background:rgba(59,130,246,.09);font-size:.76rem;font-weight:650;}
-    .status-card {min-height:92px;padding:1rem 1.1rem;border:1px solid var(--border);border-radius:14px;background:linear-gradient(145deg,#122338,#0c1a2a);}
-    .status-card .label {color:var(--muted);font-size:.72rem;font-weight:750;letter-spacing:.08em;}
-    .status-card .value {color:var(--text);font-size:1.75rem;font-weight:780;margin-top:.25rem;}
-    .section-card {border:1px solid var(--border);border-radius:14px;padding:1rem 1.1rem;background:rgba(15,29,46,.88);margin:.4rem 0 .8rem;}
-    .actor-card {border:1px solid var(--border);border-radius:14px;padding:1rem;background:linear-gradient(160deg,#14263a,#0e1b2b);min-height:132px;}
-    .actor-card h4 {margin:0 0 .4rem;color:var(--text);}.actor-card p {color:var(--muted);margin:.25rem 0;}
-    .outcome-good {border-left:4px solid var(--green);}.outcome-bad {border-left:4px solid var(--red);}.outcome-warn {border-left:4px solid var(--amber);}
-    div[data-testid="stMetric"] {background:linear-gradient(145deg,#122338,#0c1a2a);border:1px solid var(--border);padding:.8rem 1rem;border-radius:14px;}
-    div[data-testid="stMetricLabel"] {color:var(--muted);}
-    .stTabs [data-baseweb="tab-list"] {gap:.35rem;border-bottom:1px solid var(--border);}
-    .stTabs [data-baseweb="tab"] {border-radius:9px 9px 0 0;padding:.55rem .85rem;}
-    .stTabs [aria-selected="true"] {background:rgba(34,211,238,.1);color:var(--cyan);}
-    code {color:#c4f1ff !important;}
+    .block-container {max-width: 1160px; padding-top: 2.2rem; padding-bottom: 4rem;}
+    [data-testid="stHeader"] {background: rgba(247,245,240,.92); height: 1.5rem;}
+    [data-testid="stToolbar"] {display: none;}
+    [data-testid="stSidebar"] {display: none;}
+    h1, h2, h3 {letter-spacing: -.025em;}
+    h1 {font-family: Georgia, 'Times New Roman', serif; font-weight: 600 !important;}
+    .project-header {
+        border-top: 5px solid #2f6f73;
+        border-bottom: 1px solid #d7d2c7;
+        padding: 1.6rem 0 1.4rem;
+        margin-bottom: 1.5rem;
+    }
+    .course-line {color: #52636a; font-size: .82rem; font-weight: 650; letter-spacing: .055em;}
+    .project-header h1 {font-size: 2.3rem; line-height: 1.13; margin: .5rem 0 .55rem; color: #1f3035;}
+    .project-header p {max-width: 790px; color: #566469; font-size: 1.02rem; line-height: 1.65; margin: 0;}
+    .project-meta {margin-top: .85rem; color: #657278; font-size: .86rem;}
+    .problem-box {
+        background: #fffdf8; border: 1px solid #d9d4c8; border-left: 4px solid #2f6f73;
+        border-radius: 5px; padding: 1rem 1.15rem; margin: .4rem 0 1.1rem;
+    }
+    .problem-box strong {display: block; margin-bottom: .3rem; color: #24383d;}
+    .problem-box p {margin: 0; color: #536166; line-height: 1.55;}
+    .step-card {
+        min-height: 175px; background: #fffdf8; border: 1px solid #ddd8cd;
+        border-radius: 7px; padding: 1.05rem 1.1rem;
+    }
+    .step-number {
+        display: inline-flex; width: 28px; height: 28px; border-radius: 50%;
+        align-items: center; justify-content: center; background: #dce9e7;
+        color: #245b5f; font-weight: 700; font-size: .82rem; margin-bottom: .7rem;
+    }
+    .step-card h4 {margin: 0 0 .4rem; color: #283c41; font-size: 1rem;}
+    .step-card p {margin: 0; color: #647176; line-height: 1.5; font-size: .9rem;}
+    .result-box {border-radius: 6px; padding: .9rem 1.05rem; margin: .4rem 0 1rem;}
+    .result-box strong {display: block; margin-bottom: .2rem;}
+    .result-safe {background: #e8f3ed; border: 1px solid #bad5c7; color: #285b43;}
+    .result-danger {background: #f8e9e6; border: 1px solid #e4bbb2; color: #7c362d;}
+    .result-caution {background: #faf2dc; border: 1px solid #e2d09e; color: #765d1e;}
+    .party-card {background: #fffdf8; border: 1px solid #ddd8cd; border-radius: 6px; padding: 1rem; min-height: 138px;}
+    .party-name {font-family: Georgia, serif; font-size: 1.1rem; color: #263b40; margin-bottom: .35rem;}
+    .party-role {color: #687579; font-size: .86rem; line-height: 1.45;}
+    .party-note {margin-top: .7rem; color: #7c362d; font-size: .82rem; font-weight: 600;}
+    .party-alert {border-top: 3px solid #b65c4b;}
+    .party-ok {border-top: 3px solid #4c8271;}
+    .plain-note {color: #667378; font-size: .88rem; line-height: 1.55;}
+    .small-label {color: #6a767a; font-size: .76rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;}
+    .message-panel {background: #fffdf8; border: 1px solid #ddd8cd; border-radius: 6px; padding: .9rem 1rem; min-height: 95px;}
+    .message-panel p {margin: .35rem 0 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #27393e;}
+    div[data-testid="stMetric"] {background: #fffdf8; border: 1px solid #ddd8cd; padding: .75rem .9rem; border-radius: 6px;}
+    .stTabs [data-baseweb="tab-list"] {gap: 1.4rem; border-bottom: 1px solid #d9d4c8;}
+    .stTabs [data-baseweb="tab"] {padding: .7rem .1rem; background: transparent;}
+    .stTabs [aria-selected="true"] {color: #245f63; border-bottom-color: #2f6f73;}
+    div.stButton > button[kind="primary"] {background: #2f6f73; border-color: #2f6f73; border-radius: 5px;}
+    div.stButton > button {border-radius: 5px;}
+    hr {border-color: #ded9ce;}
     </style>
     """,
     unsafe_allow_html=True,
@@ -60,268 +92,352 @@ def get_service() -> SimulationService:
 service = get_service()
 
 
-def metric_cards() -> None:
-    stats = service.database.get_statistics()
-    cards = (
-        ("TOTAL LAB RUNS", stats["total_runs"], "#eef6ff"),
-        ("ATTACKS EXPOSED", stats["attacks_exposed"], "#fb7185"),
-        ("ATTACKS BLOCKED", stats["attacks_blocked"], "#34d399"),
-        ("SECURE DELIVERIES", stats["secure_deliveries"], "#22d3ee"),
-    )
-    for column, (label, value, color) in zip(st.columns(4), cards):
-        column.markdown(
-            f'<div class="status-card"><div class="label">{label}</div>'
-            f'<div class="value" style="color:{color}">{value}</div></div>',
-            unsafe_allow_html=True,
-        )
+def run_selected(mode: str, message: str, replacement: str) -> dict[str, object]:
+    if mode == "Normal exchange":
+        return service.run_normal(message)
+    if mode == "MITM attack":
+        return service.run_mitm(message, replacement)
+    return service.run_authenticated(message)
 
 
-def outcome_banner(result: dict[str, object]) -> None:
-    outcome = str(result["outcome"])
+def outcome_box(result: dict[str, object]) -> None:
+    outcome = result["outcome"]
     if outcome == "ATTACK SUCCEEDED":
-        st.error("🔴 ATTACK SUCCEEDED — Mallory obtained plaintext and changed the message.")
+        css_class = "result-danger"
+        heading = "The attack worked"
+        detail = "Mallory read Alice's message and sent a different message to Bob."
     elif outcome == "ATTACK BLOCKED":
-        st.success("🟢 ATTACK BLOCKED — the substituted public key failed identity verification.")
+        css_class = "result-safe"
+        heading = "The attack was stopped"
+        detail = "Bob rejected Mallory's substituted key because the Ed25519 signature did not match."
     else:
-        st.warning("🟡 MESSAGE DELIVERED — encrypted, but peer identity was not authenticated.")
+        css_class = "result-caution"
+        heading = "The message arrived, but identity was not checked"
+        detail = "Alice and Bob created the same key, although this exchange would still accept a substituted public key."
+    st.markdown(
+        f'<div class="result-box {css_class}"><strong>{heading}</strong>{detail}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def party_card(
+    column,
+    name: str,
+    role: str,
+    *,
+    alert: bool = False,
+    note: str | None = None,
+) -> None:
+    state_class = "party-alert" if alert else "party-ok"
+    note_html = f'<div class="party-note">{escape(note)}</div>' if note else ""
+    column.markdown(
+        f'<div class="party-card {state_class}"><div class="party-name">{escape(name)}</div>'
+        f'<div class="party-role">{escape(role)}</div>{note_html}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def show_message_comparison(result: dict[str, object]) -> None:
+    left, right = st.columns(2)
+    if result["scenario_label"] == "MITM Attack":
+        before = result["alice_sent"]
+        after = result["bob_received"]
+    else:
+        before = result["sent_message"]
+        after = result["received_message"]
+    left.markdown(
+        f'<div class="message-panel"><div class="small-label">Alice sent</div>'
+        f'<p>{escape(str(before))}</p></div>',
+        unsafe_allow_html=True,
+    )
+    right.markdown(
+        f'<div class="message-panel"><div class="small-label">Bob received</div>'
+        f'<p>{escape(str(after))}</p></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def show_network(result: dict[str, object]) -> None:
+    alice, middle, bob = st.columns(3)
+    if result["scenario_label"] == "MITM Attack":
+        party_card(alice, "Alice", "Encrypted her message using a key that she believed belonged to Bob.")
+        party_card(
+            middle,
+            "Mallory",
+            "Created two separate encrypted channels, then read and changed the message.",
+            alert=True,
+            note=f"Intercepted: {result['mallory_read']}",
+        )
+        party_card(bob, "Bob", "Received a valid AES-GCM message, but it came from Mallory rather than Alice.", alert=True)
+    elif result["scenario_label"] == "Authenticated Defense":
+        party_card(alice, "Alice", "Signed her temporary X25519 key using her Ed25519 identity key.")
+        party_card(middle, "Untrusted network", "Mallory may intercept traffic, but cannot forge Alice's signature.")
+        party_card(bob, "Bob", "Verified the signature before deriving and using the session key.")
+    else:
+        party_card(alice, "Alice", "Generated a temporary X25519 key and encrypted the message.")
+        party_card(middle, "Network", "Only public keys and ciphertext travelled across the network.")
+        party_card(bob, "Bob", "Derived the same session key and recovered the original message.")
 
 
 def transcript_table(result: dict[str, object]) -> None:
     transcript = result.get("transcript", [])
-    if transcript:
-        st.dataframe(
-            transcript,
-            width="stretch",
-            hide_index=True,
-            column_config={
-                "Step": st.column_config.NumberColumn(width="small"),
-                "Actor": st.column_config.TextColumn(width="medium"),
-                "Operation": st.column_config.TextColumn(width="medium"),
-                "Detail": st.column_config.TextColumn(width="large"),
-                "State": st.column_config.TextColumn(width="small"),
-            },
-        )
-    else:
-        st.info("No transcript is available for this run.")
-
-
-def download_report(result: dict[str, object], key: str) -> None:
-    slug = str(result["scenario_label"]).lower().replace(" ", "-")
-    st.download_button(
-        "Download evidence report",
-        data=generate_run_report(result),
-        file_name=f"{slug}-audit-{result['audit_id']}.txt",
-        mime="text/plain",
-        key=key,
+    st.dataframe(
+        transcript,
+        width="stretch",
+        hide_index=True,
+        column_config={
+            "Step": st.column_config.NumberColumn(width="small"),
+            "Actor": st.column_config.TextColumn(width="medium"),
+            "Operation": st.column_config.TextColumn(width="medium"),
+            "Detail": st.column_config.TextColumn(width="large"),
+            "State": st.column_config.TextColumn(width="small"),
+        },
     )
 
 
-def render_result(result: dict[str, object], *, report_key: str) -> None:
-    outcome_banner(result)
-    metrics = st.columns(3)
-    metrics[0].metric("Audit ID", f"#{result['audit_id']}")
-    metrics[1].metric("Execution", f"{result['duration_ms']} ms")
-    metrics[2].metric("Transcript", f"{len(result.get('transcript', []))} steps")
+def render_result(result: dict[str, object], report_key: str) -> None:
+    outcome_box(result)
+    show_network(result)
+    st.markdown("#### Message comparison")
+    show_message_comparison(result)
+    st.markdown("#### What this result means")
+    st.write(result["security_result"])
+    with st.expander("Technical details and protocol transcript"):
+        transcript_table(result)
+        st.markdown("**Message fingerprint (SHA-256)**")
+        st.code(str(result["message_sha256"]), language=None)
+        st.caption(
+            f"Audit record {result['audit_id']} · Completed in {result['duration_ms']} ms · "
+            "Private and session keys are never stored."
+        )
+    slug = str(result["scenario_label"]).lower().replace(" ", "-")
+    st.download_button(
+        "Download this result",
+        data=generate_run_report(result),
+        file_name=f"{slug}-{result['audit_id']}.txt",
+        mime="text/plain",
+        key=report_key,
+    )
 
-    if result["scenario_label"] == "MITM Attack":
-        alice, mallory, bob = st.columns(3)
-        alice.markdown('<div class="actor-card outcome-warn"><h4>👩 Alice</h4><p>Believes Mallory\'s key belongs to Bob.</p></div>', unsafe_allow_html=True)
-        alice.write(f"**Sent:** {result['alice_sent']}")
-        mallory.markdown('<div class="actor-card outcome-bad"><h4>🕵️ Mallory</h4><p>Owns both channel keys and can decrypt and re-encrypt.</p></div>', unsafe_allow_html=True)
-        mallory.write(f"**Read:** {result['mallory_read']}")
-        mallory.write(f"**Forwarded:** {result['mallory_forwarded']}")
-        bob.markdown('<div class="actor-card outcome-bad"><h4>👨 Bob</h4><p>Valid AES-GCM does not prove Alice sent it.</p></div>', unsafe_allow_html=True)
-        bob.write(f"**Received:** {result['bob_received']}")
-    else:
-        left, right = st.columns(2)
-        left.markdown('<div class="section-card"><b>Original message</b></div>', unsafe_allow_html=True)
-        left.write(result["sent_message"])
-        right.markdown('<div class="section-card"><b>Delivered message</b></div>', unsafe_allow_html=True)
-        right.write(result["received_message"])
-
-    st.subheader("Protocol event transcript")
-    transcript_table(result)
-    with st.expander("Inspect cryptographic evidence"):
-        st.write("**Message SHA-256:**", result["message_sha256"])
-        st.write("**Security conclusion:**", result["security_result"])
-        ciphertext = result.get("ciphertext_hex", result.get("first_ciphertext_hex", ""))
-        if ciphertext:
-            st.code(str(ciphertext), language=None, wrap_lines=True)
-        st.caption("Private keys and raw session keys are intentionally never displayed or stored.")
-    download_report(result, report_key)
-
-
-with st.sidebar:
-    st.markdown("## 🛡️ ADH Security Lab")
-    st.caption("Authenticated key exchange · MITM red-team simulation")
-    st.divider()
-    st.markdown("**Cryptographic stack**")
-    st.code("X25519\nEd25519\nHKDF-SHA-256\nAES-256-GCM", language=None)
-    st.markdown("**Security goals**")
-    st.markdown("- Confidentiality\n- Integrity\n- Peer authentication\n- Forward-secrecy model")
-    st.divider()
-    st.caption("Academic simulation · BCS703 Cryptography and Network Security")
 
 st.markdown(
     """
-    <div class="hero">
-      <div class="hero-kicker">CRYPTOGRAPHY & NETWORK SECURITY · ATTACK/DEFENSE LAB</div>
-      <h1>Authenticated Diffie-Hellman MITM Simulator</h1>
-      <p>Observe how an encrypted connection can still be compromised, inspect every protocol event,
-      then stop the attack by binding trusted Ed25519 identities to fresh X25519 keys.</p>
-      <span class="chip">X25519 KEY AGREEMENT</span><span class="chip">ACTIVE MITM ATTACK</span>
-      <span class="chip">ED25519 AUTHENTICATION</span><span class="chip">AES-256-GCM</span>
+    <div class="project-header">
+      <div class="course-line">BCS703 · CRYPTOGRAPHY AND NETWORK SECURITY · MINI PROJECT</div>
+      <h1>Diffie–Hellman Key Exchange and the Man-in-the-Middle Problem</h1>
+      <p>This project shows a simple but important security lesson: an encrypted connection
+      is not automatically a trusted connection. We first reproduce the attack, then add
+      identity verification and run the same test again.</p>
+      <div class="project-meta">Implemented with Python · X25519 · Ed25519 · HKDF-SHA-256 · AES-256-GCM</div>
     </div>
     """,
     unsafe_allow_html=True,
 )
-metric_cards()
-st.write("")
 
-command_tab, attack_tab, inspector_tab, audit_tab, learning_tab = st.tabs(
-    ["⚡ Mission Control", "🎯 Attack & Defense Lab", "🔬 Protocol Inspector", "📋 Audit & Experiments", "🎓 Learn & Viva"]
+overview_tab, demo_tab, results_tab, notes_tab = st.tabs(
+    ["Project overview", "Live demonstration", "Results and history", "Project notes"]
 )
 
-with command_tab:
-    st.subheader("One-click end-to-end demonstration")
-    st.write("Run the presentation sequence: honest encryption, successful active attack, then authenticated prevention.")
-    left, right = st.columns([1.2, 1])
-    with left:
-        demo_message = st.text_input("Original instruction", "Transfer ₹5,000 to Bob", key="command_message")
-        demo_replacement = st.text_input("Mallory's replacement", "Transfer ₹50,000 to Mallory", key="command_replacement")
-        if st.button("Run complete attack/defense mission", type="primary", width="stretch"):
-            try:
-                st.session_state["demo_results"] = service.run_complete_demo(demo_message, demo_replacement)
-                st.session_state["last_result"] = st.session_state["demo_results"][-1]
-                st.rerun()
-            except ValueError as exc:
-                st.error(str(exc))
-    with right:
-        st.markdown("""<div class="section-card"><b>Mission sequence</b><br><br>
-        01 · Establish an unauthenticated encrypted channel<br>
-        02 · Insert Mallory and expose the identity gap<br>
-        03 · Sign ephemeral keys and reject substitution<br>
-        04 · Save audit evidence and compare results</div>""", unsafe_allow_html=True)
-    if st.session_state.get("demo_results"):
-        titles = ("Phase 1 · Honest but unauthenticated", "Phase 2 · Mallory succeeds", "Phase 3 · Authentication blocks Mallory")
-        st.divider()
-        for index, (title, result) in enumerate(zip(titles, st.session_state["demo_results"]), start=1):
-            with st.expander(title, expanded=index == 2):
-                render_result(result, report_key=f"mission_{index}_{result['audit_id']}")
+with overview_tab:
+    st.markdown(
+        """
+        <div class="problem-box">
+          <strong>Question investigated</strong>
+          <p>Can Alice and Bob communicate safely if Diffie–Hellman creates a shared key,
+          but neither person checks who supplied the public key?</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown("### The experiment")
+    columns = st.columns(3)
+    steps = (
+        ("1", "Start with a normal exchange", "Alice and Bob derive the same key and use AES-GCM to send a message."),
+        ("2", "Put Mallory in the middle", "Mallory replaces both public keys and creates a separate encrypted channel with each person."),
+        ("3", "Authenticate the keys", "Alice and Bob sign their temporary keys. Mallory's replacement no longer passes verification."),
+    )
+    for column, (number, heading, text) in zip(columns, steps):
+        column.markdown(
+            f'<div class="step-card"><div class="step-number">{number}</div>'
+            f'<h4>{heading}</h4><p>{text}</p></div>',
+            unsafe_allow_html=True,
+        )
 
-with attack_tab:
-    st.subheader("Interactive red-team scenario")
+    st.write("")
+    st.markdown("### Run the complete comparison")
+    st.write("This runs the same message through all three cases and records each result.")
     left, right = st.columns(2)
-    lab_message = left.text_area("Alice's plaintext", "The launch code is DELTA-7", height=100, key="lab_message")
-    lab_replacement = right.text_area("Mallory's modified plaintext", "The launch code is OMEGA-9", height=100, key="lab_replacement")
-    mode = st.radio("Protocol mode", ["Normal Exchange", "MITM Attack", "Authenticated Defense"], horizontal=True, key="lab_mode")
-    if st.button("Execute selected protocol", type="primary", key="execute_lab"):
+    comparison_message = left.text_input("Original message", "Transfer ₹5,000 to Bob", key="comparison_message")
+    comparison_replacement = right.text_input("Mallory changes it to", "Transfer ₹50,000 to Mallory", key="comparison_replacement")
+    if st.button("Run all three cases", type="primary", key="run_comparison"):
         try:
-            if mode == "Normal Exchange":
-                result = service.run_normal(lab_message)
-            elif mode == "MITM Attack":
-                result = service.run_mitm(lab_message, lab_replacement)
-            else:
-                result = service.run_authenticated(lab_message)
-            st.session_state["last_result"] = result
+            st.session_state["comparison_results"] = service.run_complete_demo(
+                comparison_message, comparison_replacement
+            )
+            st.session_state["last_result"] = st.session_state["comparison_results"][-1]
+            st.rerun()
+        except ValueError as exc:
+            st.error(str(exc))
+    if st.session_state.get("comparison_results"):
+        st.markdown("#### Comparison")
+        rows = [
+            {
+                "Case": result["scenario_label"],
+                "Result": result["outcome"].title(),
+                "Time (ms)": result["duration_ms"],
+                "Explanation": result["security_result"],
+            }
+            for result in st.session_state["comparison_results"]
+        ]
+        st.dataframe(rows, width="stretch", hide_index=True)
+
+with demo_tab:
+    st.markdown("### Try one case at a time")
+    st.write("Use the same message in different modes and compare what Bob finally receives.")
+    mode = st.radio(
+        "Choose a case",
+        ["Normal exchange", "MITM attack", "Authenticated defense"],
+        horizontal=True,
+        key="demo_mode",
+    )
+    left, right = st.columns(2)
+    message = left.text_area("Alice's message", "The meeting is at 10:00 AM", height=100, key="demo_message")
+    replacement = right.text_area(
+        "Mallory's replacement message",
+        "The meeting is cancelled",
+        height=100,
+        disabled=mode != "MITM attack",
+        key="demo_replacement",
+    )
+    if st.button("Run simulation", type="primary", key="run_simulation"):
+        try:
+            st.session_state["last_result"] = run_selected(mode, message, replacement)
         except ValueError as exc:
             st.error(str(exc))
     if st.session_state.get("last_result"):
-        result = st.session_state["last_result"]
         st.divider()
-        render_result(result, report_key=f"lab_{result['audit_id']}")
+        result = st.session_state["last_result"]
+        render_result(result, f"result_{result['audit_id']}")
 
-with inspector_tab:
-    st.subheader("Protocol inspector")
-    result = st.session_state.get("last_result")
-    if not result:
-        st.info("Execute a protocol in Mission Control or the Attack & Defense Lab first.")
-    else:
-        metrics = st.columns(3)
-        metrics[0].metric("Selected run", f"Audit #{result['audit_id']}")
-        metrics[1].metric("Raw private keys shown", "NEVER")
-        metrics[2].metric("Threat model", "ACTIVE NETWORK")
-        transcript_table(result)
-        st.markdown("#### Why each primitive is present")
-        st.markdown("""
-        | Primitive | Job | What fails without it |
-        |---|---|---|
-        | X25519 | Establish a shared secret | No efficient ephemeral key agreement |
-        | HKDF-SHA-256 | Derive a context-specific AES key | Raw ECDH material is used unsafely |
-        | AES-256-GCM | Encrypt and authenticate each message | Content can be read or altered |
-        | Ed25519 | Prove who owns an ephemeral X25519 key | Public-key substitution enables MITM |
-        """)
-        st.warning("AES-GCM does not fail during MITM: Mallory legitimately knows both fraudulent channel keys. Authentication must occur first.")
+with results_tab:
+    stats = service.database.get_statistics()
+    metric_columns = st.columns(4)
+    metric_columns[0].metric("Simulations run", stats["total_runs"])
+    metric_columns[1].metric("MITM attacks shown", stats["attacks_exposed"])
+    metric_columns[2].metric("Attacks prevented", stats["attacks_blocked"])
+    metric_columns[3].metric("Normal deliveries", stats["secure_deliveries"])
 
-with audit_tab:
-    st.subheader("Persistent audit trail and performance evidence")
-    left, right = st.columns([2, 1])
-    scenario_filter = left.selectbox("Filter scenario", ["All", "Normal Exchange", "MITM Attack", "Authenticated Defense"])
-    history_limit = right.number_input("Maximum records", 10, 500, 100, 10)
+    st.markdown("### Saved experiment history")
+    filter_column, limit_column = st.columns([2, 1])
+    scenario_filter = filter_column.selectbox(
+        "Show",
+        ["All", "Normal Exchange", "MITM Attack", "Authenticated Defense"],
+    )
+    history_limit = limit_column.number_input("Number of records", 10, 500, 50, 10)
     history = service.database.get_history(scenario=scenario_filter, limit=int(history_limit))
     if history:
-        display_rows = [{"ID": row["id"], "Time (UTC)": row["created_at"], "Scenario": row["scenario"], "Outcome": row["outcome"], "Duration (ms)": row["duration_ms"], "Message digest": row["message_sha256"][:16] + "…"} for row in history]
+        display_rows = [
+            {
+                "ID": row["id"],
+                "Date (UTC)": row["created_at"],
+                "Case": row["scenario"],
+                "Result": row["outcome"].title(),
+                "Time (ms)": row["duration_ms"],
+                "Message hash": row["message_sha256"][:14] + "…",
+            }
+            for row in history
+        ]
         st.dataframe(display_rows, width="stretch", hide_index=True)
-        st.download_button("Export audit history as CSV", history_to_csv(history), file_name=f"protocol-audit-{datetime.now():%Y%m%d-%H%M%S}.csv", mime="text/csv")
+        st.download_button(
+            "Download history as CSV",
+            history_to_csv(history),
+            file_name=f"simulation-history-{datetime.now():%Y%m%d-%H%M%S}.csv",
+            mime="text/csv",
+        )
     else:
-        st.info("No audit records match the current filter.")
-    st.divider()
-    st.markdown("#### Controlled performance experiment")
+        st.info("No experiment records are available yet.")
+
+    st.markdown("### Performance comparison")
     left, right = st.columns([1, 2])
-    rounds = left.slider("Trials per scenario", 5, 200, 30, 5)
-    if left.button("Run benchmark", key="benchmark_button"):
-        with st.spinner("Executing cryptographic trials..."):
+    rounds = left.slider("Runs per case", 5, 200, 30, 5)
+    if left.button("Run timing test", key="run_benchmark"):
+        with st.spinner("Running the three cases..."):
             st.session_state["benchmark"] = benchmark_protocols(rounds)
-    right.caption("Signatures add a small measurable cost in exchange for protection against identity substitution.")
+    right.markdown(
+        '<p class="plain-note">The authenticated case does extra signature work. '
+        'The timing test measures that added cost on this computer.</p>',
+        unsafe_allow_html=True,
+    )
     if st.session_state.get("benchmark"):
         benchmark = st.session_state["benchmark"]
         st.dataframe(benchmark, width="stretch", hide_index=True)
-        st.bar_chart({str(row["Scenario"]): float(row["Average time (ms)"]) for row in benchmark}, horizontal=True)
+        st.bar_chart(
+            {str(row["Scenario"]): float(row["Average time (ms)"]) for row in benchmark},
+            horizontal=True,
+        )
 
-with learning_tab:
-    st.subheader("Understand the project before presenting it")
-    left, right = st.columns(2)
-    left.markdown("""<div class="section-card outcome-warn"><b>What Diffie-Hellman solves</b><br><br>
-    Alice and Bob calculate the same secret without transmitting it. X25519 is the modern elliptic-curve version.</div>""", unsafe_allow_html=True)
-    right.markdown("""<div class="section-card outcome-bad"><b>What plain Diffie-Hellman does not solve</b><br><br>
-    It does not prove that a received public key belongs to the intended person. That identity gap is where Mallory enters.</div>""", unsafe_allow_html=True)
-    with st.expander("The complete story in six sentences", expanded=True):
-        st.markdown("""
-        1. Alice and Bob generate temporary X25519 key pairs.
-        2. Without authentication, Mallory replaces both transmitted public keys.
-        3. Mallory now shares one valid key with Alice and another valid key with Bob.
-        4. Mallory decrypts, changes and re-encrypts traffic without breaking AES.
-        5. Ed25519 signatures bind trusted identities to the exact temporary keys and session.
-        6. A substituted key changes the signed data, so verification fails before encryption begins.
-        """)
-    with st.expander("High-value viva questions"):
-        st.markdown("""
-        **Why is AES-GCM not enough?**
+with notes_tab:
+    st.markdown("### How the four cryptographic parts fit together")
+    st.markdown(
+        """
+        | Part | Purpose in this project |
+        |---|---|
+        | **X25519** | Lets Alice and Bob calculate the same shared secret. |
+        | **HKDF-SHA-256** | Converts that secret into a key suitable for AES. |
+        | **AES-256-GCM** | Encrypts the message and detects ciphertext modification. |
+        | **Ed25519** | Proves who supplied each temporary X25519 public key. |
+        """
+    )
+    st.markdown("### The point to remember")
+    st.markdown(
+        """
+        <div class="problem-box">
+          <strong>Mallory does not break the encryption.</strong>
+          <p>The attack works because Alice and Bob encrypt with keys that they unknowingly
+          established with Mallory. Authentication must therefore happen before the encrypted
+          channel is trusted.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    with st.expander("Questions you may be asked in the viva"):
+        st.markdown(
+            """
+            **Why is AES-GCM not enough?**
 
-        AES protects whichever key was established. During MITM, Mallory owns both keys.
+            AES-GCM protects a channel after its key has been established. It cannot identify
+            the person who participated in the key exchange.
 
-        **Why use HKDF?**
+            **Why is HKDF used?**
 
-        Raw X25519 output is key material, not a protocol-separated AES key. HKDF safely derives one.
+            The raw X25519 output is key material. HKDF derives a fixed-length, protocol-specific
+            AES key from it.
 
-        **X25519 versus Ed25519?**
+            **What is the difference between X25519 and Ed25519?**
 
-        X25519 performs key agreement; Ed25519 authenticates the public key through signatures.
+            X25519 is used for key agreement. Ed25519 is used for digital signatures.
 
-        **Main limitation?**
+            **What is the main limitation of this simulation?**
 
-        The simulator assumes Alice and Bob already trust each other's Ed25519 identity public keys.
-        """)
-    st.markdown("#### Assignment evaluation evidence")
-    st.markdown("""
-    | Rubric area | Demonstrable evidence |
-    |---|---|
-    | Problem and objectives | Identity gap in unauthenticated ECDH is explicitly defined |
-    | Cryptographic concept | Four correctly separated modern primitives |
-    | Design and methodology | Three scenarios, active attacker model and event transcript |
-    | Implementation | Dashboard, service layer, SQLite audit and exports |
-    | Security analysis | Attack success, blocked substitution and timing comparison |
-    | Documentation | Architecture, report draft, tests and viva guide |
-    | Presentation | One-click mission plus interactive red-team lab |
-    """)
+            It assumes Alice and Bob already trust each other's Ed25519 public identity keys.
+            Real systems distribute that trust through certificates or verified fingerprints.
+            """
+        )
+    with st.expander("Assignment rubric coverage"):
+        st.markdown(
+            """
+            - **Problem definition:** unauthenticated key exchange permits public-key substitution.
+            - **Cryptographic concepts:** X25519, Ed25519, HKDF-SHA-256 and AES-GCM.
+            - **Design:** three controlled cases using the same input message.
+            - **Implementation:** working interface, CLI, SQLite history and report export.
+            - **Analysis:** attack outcome, prevention result and timing comparison.
+            - **Documentation:** architecture, project report, test suite and viva notes.
+            """
+        )
+
+st.divider()
+st.caption(
+    "Educational mini project. Identity keys are generated in memory for each run; "
+    "production systems require certificate or key-distribution infrastructure."
+)
 

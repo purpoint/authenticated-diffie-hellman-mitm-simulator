@@ -6,14 +6,14 @@ from streamlit.testing.v1 import AppTest
 
 
 APP_FILE = Path(__file__).resolve().parents[1] / "app.py"
-SCENARIOS = ("Normal Exchange", "MITM Attack", "Authenticated Defense")
+SCENARIOS = ("Normal exchange", "MITM attack", "Authenticated defense")
 
 
 def test_dashboard_loads_without_exception() -> None:
     app = AppTest.from_file(APP_FILE).run(timeout=10)
     assert not app.exception
-    assert len(app.tabs) == 5
-    assert any("Mission Control" in tab.label for tab in app.tabs)
+    assert len(app.tabs) == 4
+    assert any("Live demonstration" in tab.label for tab in app.tabs)
 
 
 def test_each_interactive_scenario_runs_without_exception() -> None:

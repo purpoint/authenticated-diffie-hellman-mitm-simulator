@@ -15,9 +15,9 @@ The implementation uses modern, real cryptographic primitives:
 
 ## Project highlights
 
-- **Professional security operations dashboard** with five focused work areas and live KPI cards.
-- **One-click attack/defense mission** presenting the complete story in the correct viva order.
-- **Interactive red-team lab** for changing Alice's and Mallory's messages.
+- **Clean academic interface** organized around the problem, experiment and conclusion.
+- **One-click three-case comparison** presenting the complete story in the correct viva order.
+- **Interactive demonstration** for changing Alice's and Mallory's messages.
 - **Detailed protocol transcript** showing every actor, operation, security state and outcome.
 - **Persistent SQLite audit history** with scenario filters and CSV export.
 - **Privacy-conscious auditing:** only SHA-256 message digests are stored, never message plaintext.
