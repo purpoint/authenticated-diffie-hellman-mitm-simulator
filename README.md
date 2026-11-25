@@ -16,6 +16,7 @@ The implementation uses modern, real cryptographic primitives:
 ## Project highlights
 
 - **Clean academic interface** organized around the problem, experiment and conclusion.
+- **Instant light/dark theme switch** with matching contrast for cards, forms and results.
 - **One-click three-case comparison** presenting the complete story in the correct viva order.
 - **Interactive demonstration** for changing Alice's and Mallory's messages.
 - **Detailed protocol transcript** showing every actor, operation, security state and outcome.
