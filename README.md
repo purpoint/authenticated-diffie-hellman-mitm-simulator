@@ -21,11 +21,13 @@ The implementation uses modern, real cryptographic primitives:
 - **Interactive demonstration** for changing Alice's and Mallory's messages.
 - **Detailed protocol transcript** showing every actor, operation, security state and outcome.
 - **Persistent SQLite audit history** with scenario filters and CSV export.
+- **Lab-notebook experiment log** with chronological observations instead of dashboard counters.
+- **Interactive key-exchange playground** using small numbers to make Diffie-Hellman visible by hand.
 - **Privacy-conscious auditing:** only SHA-256 message digests are stored, never message plaintext.
 - **Downloadable evidence reports** containing algorithms, timings, conclusions and transcripts.
 - **Controlled benchmark lab** comparing normal, attacked and authenticated protocol costs.
 - **Command-line interface** plus an automated eight-step demonstration walkthrough.
-- **22 automated tests** covering cryptography, attack behavior, persistence, reports and UI flows.
+- **23 automated tests** covering cryptography, attack behavior, persistence, reports, themes and UI flows.
 
 ## Beginner explanation
 
@@ -42,10 +44,10 @@ detected before any sensitive message is sent.
 
 The Streamlit application contains four sections:
 
-- **Learn:** the concepts in simple language;
-- **Live demonstration:** all three protocol scenarios;
-- **Experiments:** repeated performance measurements and a chart; and
-- **Assignment mapping:** direct evidence for each evaluation criterion.
+- **Project overview:** the question, three-case method and complete comparison;
+- **Live demonstration:** individual normal, attack and authenticated scenarios;
+- **Experiment log:** chronological observations, CSV audit export and timing study; and
+- **Key exchange playground:** a small-number Diffie-Hellman calculation you can change interactively.
 
 ## Run locally
 

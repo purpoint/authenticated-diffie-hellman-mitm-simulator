@@ -140,13 +140,33 @@ st.markdown(
     input, textarea {color: var(--text) !important; -webkit-text-fill-color: var(--text) !important;}
     [data-testid="stExpander"], [data-testid="stDataFrame"] {border-color: var(--border) !important;}
     code {color: var(--text) !important; background: var(--surface-soft) !important;}
+    .log-summary {background: var(--surface-soft); border: 1px solid var(--border); border-radius: 6px; padding: .9rem 1rem; color: var(--text); margin-bottom: 1rem;}
+    .log-entry {display: grid; grid-template-columns: 105px 1fr 100px; gap: 1rem; align-items: center; padding: .85rem .2rem; border-bottom: 1px solid var(--border);}
+    .log-entry:last-child {border-bottom: 0;}
+    .run-number {font-weight: 700; color: var(--heading);}
+    .run-time {font-size: .75rem; color: var(--muted);}
+    .run-case {font-weight: 650; color: var(--heading); margin-bottom: .2rem;}
+    .run-note {font-size: .86rem; color: var(--muted); line-height: 1.4;}
+    .run-status {justify-self: end; font-size: .76rem; font-weight: 700; padding: .25rem .5rem; border-radius: 999px;}
+    .status-delivered {background: var(--caution-bg); color: var(--caution-text);}
+    .status-intercepted {background: var(--danger-bg); color: var(--danger-text);}
+    .status-blocked {background: var(--safe-bg); color: var(--safe-text);}
+    .math-card {background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1rem; min-height: 165px;}
+    .math-card h4 {margin: 0 0 .65rem; font-family: Georgia, serif;}
+    .math-line {font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); margin: .4rem 0;}
+    .math-muted {color: var(--muted); font-size: .84rem; line-height: 1.45;}
+    .calculation-box {background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: .85rem 1rem; color: var(--text);}
+    .calculation-box strong {display: block; margin-bottom: .35rem; color: var(--heading);}
+    .calculation-box span {font-family: ui-monospace, SFMono-Regular, Menlo, monospace;}
+    .secret-box {background: var(--safe-bg); border: 1px solid var(--safe-border); border-radius: 6px; padding: 1rem; color: var(--safe-text); text-align: center; margin: 1rem 0;}
+    .secret-value {font-family: Georgia, serif; font-size: 1.9rem; font-weight: 700; margin-top: .2rem;}
     hr {border-color: var(--border);}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-theme_left, theme_right = st.columns([8, 1.35])
+theme_left, theme_right = st.columns([8, 2])
 with theme_right:
     st.toggle("Dark theme", key="dark_mode")
 
@@ -262,6 +282,35 @@ def transcript_table(result: dict[str, object]) -> None:
     )
 
 
+def history_description(row: dict[str, object]) -> tuple[str, str, str]:
+    scenario = str(row["scenario"])
+    if scenario == "MITM Attack":
+        return (
+            "Intercepted",
+            "status-intercepted",
+            "Mallory established two channel keys and replaced Alice's message.",
+        )
+    if scenario == "Authenticated Defense":
+        return (
+            "Blocked",
+            "status-blocked",
+            "The signature check rejected the substituted ephemeral key.",
+        )
+    return (
+        "Delivered",
+        "status-delivered",
+        "Alice and Bob completed an encrypted exchange without authenticating identity.",
+    )
+
+
+def format_run_time(raw_timestamp: object) -> str:
+    try:
+        parsed = datetime.fromisoformat(str(raw_timestamp))
+        return parsed.strftime("%d %b, %H:%M UTC")
+    except ValueError:
+        return str(raw_timestamp)
+
+
 def render_result(result: dict[str, object], report_key: str) -> None:
     outcome_box(result)
     show_network(result)
@@ -301,8 +350,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-overview_tab, demo_tab, results_tab, notes_tab = st.tabs(
-    ["Project overview", "Live demonstration", "Results and history", "Project notes"]
+overview_tab, demo_tab, log_tab, playground_tab = st.tabs(
+    ["Project overview", "Live demonstration", "Experiment log", "Key exchange playground"]
 )
 
 with overview_tab:
@@ -386,53 +435,72 @@ with demo_tab:
         result = st.session_state["last_result"]
         render_result(result, f"result_{result['audit_id']}")
 
-with results_tab:
+with log_tab:
     stats = service.database.get_statistics()
-    metric_columns = st.columns(4)
-    metric_columns[0].metric("Simulations run", stats["total_runs"])
-    metric_columns[1].metric("MITM attacks shown", stats["attacks_exposed"])
-    metric_columns[2].metric("Attacks prevented", stats["attacks_blocked"])
-    metric_columns[3].metric("Normal deliveries", stats["secure_deliveries"])
-
-    st.markdown("### Saved experiment history")
+    st.markdown("### Experiment log")
+    st.markdown(
+        f'<div class="log-summary">This local notebook contains <strong>{stats["total_runs"]}</strong> '
+        f'runs: {stats["attacks_exposed"]} successful interception demonstrations and '
+        f'{stats["attacks_blocked"]} rejected substitution attempts. Message text is not '
+        'stored in the log; only its SHA-256 fingerprint is saved.</div>',
+        unsafe_allow_html=True,
+    )
     filter_column, limit_column = st.columns([2, 1])
     scenario_filter = filter_column.selectbox(
-        "Show",
+        "Show runs from",
         ["All", "Normal Exchange", "MITM Attack", "Authenticated Defense"],
     )
-    history_limit = limit_column.number_input("Number of records", 10, 500, 50, 10)
+    history_limit = limit_column.number_input("Maximum entries", 10, 500, 50, 10)
     history = service.database.get_history(scenario=scenario_filter, limit=int(history_limit))
     if history:
+        st.markdown("#### Recent observations")
+        recent_html: list[str] = []
+        for row in history[:10]:
+            status, status_class, observation = history_description(row)
+            recent_html.append(
+                '<div class="log-entry">'
+                f'<div><div class="run-number">Run {int(row["id"]):03d}</div>'
+                f'<div class="run-time">{escape(format_run_time(row["created_at"]))}</div></div>'
+                f'<div><div class="run-case">{escape(str(row["scenario"]))}</div>'
+                f'<div class="run-note">{escape(observation)} Completed in '
+                f'{float(row["duration_ms"]):.3f} ms.</div></div>'
+                f'<div class="run-status {status_class}">{status}</div></div>'
+            )
+        st.markdown("".join(recent_html), unsafe_allow_html=True)
+
         display_rows = [
             {
-                "ID": row["id"],
-                "Date (UTC)": row["created_at"],
+                "Run": row["id"],
+                "Recorded (UTC)": row["created_at"],
                 "Case": row["scenario"],
-                "Result": row["outcome"].title(),
+                "Outcome": row["outcome"].title(),
                 "Time (ms)": row["duration_ms"],
                 "Message hash": row["message_sha256"][:14] + "…",
             }
             for row in history
         ]
-        st.dataframe(display_rows, width="stretch", hide_index=True)
+        with st.expander("Open the complete audit table"):
+            st.dataframe(display_rows, width="stretch", hide_index=True)
         st.download_button(
-            "Download history as CSV",
+            "Export log as CSV",
             history_to_csv(history),
-            file_name=f"simulation-history-{datetime.now():%Y%m%d-%H%M%S}.csv",
+            file_name=f"experiment-log-{datetime.now():%Y%m%d-%H%M%S}.csv",
             mime="text/csv",
         )
     else:
-        st.info("No experiment records are available yet.")
+        st.info("No runs match this filter. Run a case from the demonstration tab first.")
 
-    st.markdown("### Performance comparison")
+    st.divider()
+    st.markdown("### Timing study")
+    st.write("Repeat each case several times and compare its average running time on this computer.")
     left, right = st.columns([1, 2])
-    rounds = left.slider("Runs per case", 5, 200, 30, 5)
-    if left.button("Run timing test", key="run_benchmark"):
+    rounds = left.slider("Repetitions per case", 5, 200, 30, 5)
+    if left.button("Measure running time", key="run_benchmark"):
         with st.spinner("Running the three cases..."):
             st.session_state["benchmark"] = benchmark_protocols(rounds)
     right.markdown(
-        '<p class="plain-note">The authenticated case does extra signature work. '
-        'The timing test measures that added cost on this computer.</p>',
+        '<p class="plain-note">This is a small local experiment, not a universal benchmark. '
+        'The result changes with the computer and other processes running at the same time.</p>',
         unsafe_allow_html=True,
     )
     if st.session_state.get("benchmark"):
@@ -442,65 +510,100 @@ with results_tab:
             {str(row["Scenario"]): float(row["Average time (ms)"]) for row in benchmark},
             horizontal=True,
         )
+        normal_time = next(
+            float(row["Average time (ms)"])
+            for row in benchmark
+            if row["Scenario"] == "Normal exchange"
+        )
+        protected_time = next(
+            float(row["Average time (ms)"])
+            for row in benchmark
+            if row["Scenario"] == "Authenticated defense"
+        )
+        difference = protected_time - normal_time
+        st.caption(
+            f"Observation from this run: authentication added approximately {difference:.4f} ms "
+            "to the complete exchange."
+        )
 
-with notes_tab:
-    st.markdown("### How the four cryptographic parts fit together")
-    st.markdown(
-        """
-        | Part | Purpose in this project |
-        |---|---|
-        | **X25519** | Lets Alice and Bob calculate the same shared secret. |
-        | **HKDF-SHA-256** | Converts that secret into a key suitable for AES. |
-        | **AES-256-GCM** | Encrypts the message and detects ciphertext modification. |
-        | **Ed25519** | Proves who supplied each temporary X25519 public key. |
-        """
+with playground_tab:
+    st.markdown("### Key exchange playground")
+    st.write(
+        "The real project uses X25519, whose numbers are far too large to follow by hand. "
+        "This smaller example uses the same Diffie–Hellman idea so you can see why both sides "
+        "arrive at one shared secret."
     )
-    st.markdown("### The point to remember")
-    st.markdown(
-        """
-        <div class="problem-box">
-          <strong>Mallory does not break the encryption.</strong>
-          <p>The attack works because Alice and Bob encrypt with keys that they unknowingly
-          established with Mallory. Authentication must therefore happen before the encrypted
-          channel is trusted.</p>
-        </div>
-        """,
+
+    prime = st.select_slider(
+        "Public prime number (p)",
+        options=[23, 47, 59, 83],
+        value=23,
+        key="toy_prime",
+    )
+    base = 5
+    slider_left, slider_right = st.columns(2)
+    alice_private = slider_left.slider(
+        "Alice's private number (a)", 2, prime - 2, 6, key="alice_private"
+    )
+    bob_private = slider_right.slider(
+        "Bob's private number (b)", 2, prime - 2, 15, key="bob_private"
+    )
+
+    alice_public = pow(base, alice_private, prime)
+    bob_public = pow(base, bob_private, prime)
+    alice_shared = pow(bob_public, alice_private, prime)
+    bob_shared = pow(alice_public, bob_private, prime)
+
+    public_column, alice_column, bob_column = st.columns(3)
+    public_column.markdown(
+        f'<div class="math-card"><h4>Public information</h4>'
+        f'<div class="math-line">p = {prime}</div><div class="math-line">g = {base}</div>'
+        '<p class="math-muted">Everyone, including Mallory, is allowed to know these two values.</p></div>',
         unsafe_allow_html=True,
     )
-    with st.expander("Questions you may be asked in the viva"):
+    alice_column.markdown(
+        f'<div class="math-card"><h4>Alice</h4>'
+        f'<div class="math-line">private a = {alice_private}</div>'
+        f'<div class="math-line">public A = {base}<sup>{alice_private}</sup> mod {prime} = {alice_public}</div>'
+        f'<p class="math-muted">Alice sends only A = {alice_public}.</p></div>',
+        unsafe_allow_html=True,
+    )
+    bob_column.markdown(
+        f'<div class="math-card"><h4>Bob</h4>'
+        f'<div class="math-line">private b = {bob_private}</div>'
+        f'<div class="math-line">public B = {base}<sup>{bob_private}</sup> mod {prime} = {bob_public}</div>'
+        f'<p class="math-muted">Bob sends only B = {bob_public}.</p></div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        f'<div class="secret-box"><div>Both sides independently calculate</div>'
+        f'<div class="secret-value">shared secret = {alice_shared}</div></div>',
+        unsafe_allow_html=True,
+    )
+    proof_left, proof_right = st.columns(2)
+    proof_left.markdown(
+        f'<div class="calculation-box"><strong>Alice calculates</strong>'
+        f'<span>B<sup>a</sup> mod p = {bob_public}<sup>{alice_private}</sup> mod '
+        f'{prime} = {alice_shared}</span></div>',
+        unsafe_allow_html=True,
+    )
+    proof_right.markdown(
+        f'<div class="calculation-box"><strong>Bob calculates</strong>'
+        f'<span>A<sup>b</sup> mod p = {alice_public}<sup>{bob_private}</sup> mod '
+        f'{prime} = {bob_shared}</span></div>',
+        unsafe_allow_html=True,
+    )
+    if alice_shared == bob_shared:
         st.markdown(
-            """
-            **Why is AES-GCM not enough?**
-
-            AES-GCM protects a channel after its key has been established. It cannot identify
-            the person who participated in the key exchange.
-
-            **Why is HKDF used?**
-
-            The raw X25519 output is key material. HKDF derives a fixed-length, protocol-specific
-            AES key from it.
-
-            **What is the difference between X25519 and Ed25519?**
-
-            X25519 is used for key agreement. Ed25519 is used for digital signatures.
-
-            **What is the main limitation of this simulation?**
-
-            It assumes Alice and Bob already trust each other's Ed25519 public identity keys.
-            Real systems distribute that trust through certificates or verified fingerprints.
-            """
+            '<div class="result-box result-safe"><strong>The calculations match.</strong>'
+            'Alice and Bob can now derive the same encryption key.</div>',
+            unsafe_allow_html=True,
         )
-    with st.expander("Assignment rubric coverage"):
-        st.markdown(
-            """
-            - **Problem definition:** unauthenticated key exchange permits public-key substitution.
-            - **Cryptographic concepts:** X25519, Ed25519, HKDF-SHA-256 and AES-GCM.
-            - **Design:** three controlled cases using the same input message.
-            - **Implementation:** working interface, CLI, SQLite history and report export.
-            - **Analysis:** attack outcome, prevention result and timing comparison.
-            - **Documentation:** architecture, project report, test suite and viva notes.
-            """
-        )
+    st.caption(
+        "This is a teaching example with deliberately small values. It is not secure for real use; "
+        "the application uses X25519 for the actual simulation."
+    )
 
 st.divider()
 st.caption(

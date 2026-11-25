@@ -14,6 +14,8 @@ def test_dashboard_loads_without_exception() -> None:
     assert not app.exception
     assert len(app.tabs) == 4
     assert any("Live demonstration" in tab.label for tab in app.tabs)
+    assert any("Experiment log" in tab.label for tab in app.tabs)
+    assert any("Key exchange playground" in tab.label for tab in app.tabs)
 
 
 def test_dark_theme_toggle_reruns_without_exception() -> None:
