@@ -25,7 +25,7 @@ def test_dark_theme_toggle_reruns_without_exception() -> None:
 
     assert not app.exception
     assert app.toggle[0].value is True
-    assert "#101417" in app.markdown[0].value
+    assert "#0b1218" in app.markdown[0].value
 
 
 def test_each_interactive_scenario_runs_without_exception() -> None:

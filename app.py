@@ -23,27 +23,27 @@ st.set_page_config(
 dark_mode = bool(st.session_state.get("dark_mode", False))
 theme = (
     {
-        "page": "#101417",
-        "surface": "#171d21",
-        "surface_soft": "#20272c",
-        "input": "#1d2428",
-        "border": "#364047",
-        "border_strong": "#465158",
-        "text": "#e5e7e2",
-        "heading": "#f1f3ee",
-        "muted": "#aab3b5",
-        "accent": "#6ea9a4",
-        "accent_soft": "#233b3b",
-        "header": "rgba(16,20,23,.94)",
-        "safe_bg": "#193129",
-        "safe_border": "#355d4d",
-        "safe_text": "#b8ddc9",
-        "danger_bg": "#3b2424",
-        "danger_border": "#70413a",
-        "danger_text": "#f0c3bb",
-        "caution_bg": "#3a3321",
-        "caution_border": "#6c5c32",
-        "caution_text": "#ead99b",
+        "page": "#0b1218",
+        "surface": "#141e27",
+        "surface_soft": "#1b2934",
+        "input": "#17232d",
+        "border": "#324654",
+        "border_strong": "#435b69",
+        "text": "#e7eef2",
+        "heading": "#f7fafb",
+        "muted": "#a9bac4",
+        "accent": "#65c3bd",
+        "accent_soft": "#193c3d",
+        "header": "rgba(11,18,24,.96)",
+        "safe_bg": "#143328",
+        "safe_border": "#2f6853",
+        "safe_text": "#c1ead6",
+        "danger_bg": "#3b2224",
+        "danger_border": "#7d4547",
+        "danger_text": "#ffd0ca",
+        "caution_bg": "#392f1d",
+        "caution_border": "#786437",
+        "caution_text": "#f5dda0",
     }
     if dark_mode
     else {
@@ -79,13 +79,15 @@ st.markdown(
     "<style>"
     + theme_variables
     + """
-    .stApp {background: var(--page); color: var(--text);}
+    html, body, .stApp, [data-testid="stAppViewContainer"] {overflow-x: hidden;}
+    .stApp, [data-testid="stAppViewContainer"] {background: var(--page); color: var(--text);}
     .block-container {max-width: 1160px; padding-top: 2.2rem; padding-bottom: 4rem;}
     [data-testid="stHeader"] {background: var(--header); height: 1.5rem;}
     [data-testid="stToolbar"] {display: none;}
     [data-testid="stSidebar"] {display: none;}
     h1, h2, h3, h4 {letter-spacing: -.025em; color: var(--heading) !important;}
-    p, li, label, [data-testid="stCaptionContainer"] {color: var(--text);}
+    p, li, label, [data-testid="stCaptionContainer"], [data-testid="stWidgetLabel"] p {color: var(--text) !important;}
+    [data-testid="stCaptionContainer"] p {color: var(--muted) !important;}
     h1 {font-family: Georgia, 'Times New Roman', serif; font-weight: 600 !important;}
     .project-header {
         border-top: 5px solid var(--accent);
@@ -131,15 +133,45 @@ st.markdown(
     .message-panel p {margin: .35rem 0 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--heading);}
     div[data-testid="stMetric"] {background: var(--surface); border: 1px solid var(--border); padding: .75rem .9rem; border-radius: 6px;}
     .stTabs [data-baseweb="tab-list"] {gap: 1.4rem; border-bottom: 1px solid var(--border);}
-    .stTabs [data-baseweb="tab"] {padding: .7rem .1rem; background: transparent;}
-    .stTabs [aria-selected="true"] {color: var(--accent); border-bottom-color: var(--accent);}
-    div.stButton > button[kind="primary"] {background: var(--accent); border-color: var(--accent); border-radius: 5px; color: white;}
-    div.stButton > button {border-radius: 5px; background: var(--surface); color: var(--text); border-color: var(--border);}
-    div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > div,
-    div[data-baseweb="select"] > div {background: var(--input) !important; border-color: var(--border) !important;}
-    input, textarea {color: var(--text) !important; -webkit-text-fill-color: var(--text) !important;}
-    [data-testid="stExpander"], [data-testid="stDataFrame"] {border-color: var(--border) !important;}
-    code {color: var(--text) !important; background: var(--surface-soft) !important;}
+    .stTabs [data-baseweb="tab"] {padding: .7rem .1rem; background: transparent; color: var(--muted) !important;}
+    .stTabs [data-baseweb="tab"] p {color: inherit !important;}
+    .stTabs [aria-selected="true"] {color: var(--accent) !important; border-bottom-color: var(--accent) !important;}
+    div.stButton > button[kind="primary"] {background: var(--accent) !important; border-color: var(--accent) !important; border-radius: 5px; color: #071315 !important; font-weight: 700;}
+    div.stButton > button, div[data-testid="stDownloadButton"] > button {
+        border-radius: 5px; background: var(--surface) !important; color: var(--text) !important;
+        border-color: var(--border) !important;
+    }
+    div.stButton > button p, div[data-testid="stDownloadButton"] > button p {color: inherit !important;}
+    div.stButton > button:hover, div[data-testid="stDownloadButton"] > button:hover {
+        border-color: var(--accent) !important; color: var(--heading) !important;
+    }
+    div[data-baseweb="input"], div[data-baseweb="textarea"], div[data-baseweb="select"] > div,
+    div[data-baseweb="base-input"], [data-testid="stNumberInput"] > div > div {
+        background: var(--input) !important; border-color: var(--border) !important;
+    }
+    input, textarea, [contenteditable="true"] {
+        background: var(--input) !important; color: var(--text) !important;
+        -webkit-text-fill-color: var(--text) !important; caret-color: var(--accent) !important;
+    }
+    input::placeholder, textarea::placeholder {color: var(--muted) !important; opacity: .72;}
+    [data-baseweb="radio"] > div:first-child {background-color: var(--surface) !important; border-color: var(--border-strong) !important;}
+    [data-baseweb="radio"] [aria-checked="true"] {background-color: var(--accent) !important;}
+    [data-testid="stExpander"] {background: var(--surface) !important; border-color: var(--border) !important;}
+    [data-testid="stExpander"] details, [data-testid="stExpander"] summary {
+        background: var(--surface) !important; color: var(--text) !important;
+    }
+    [data-testid="stExpander"] summary p, [data-testid="stExpander"] summary svg {color: var(--text) !important; fill: var(--text) !important;}
+    [data-testid="stDataFrame"] {border-color: var(--border) !important; background: var(--surface) !important;}
+    [data-testid="stCode"], [data-testid="stCode"] pre, code {
+        color: var(--text) !important; background: var(--surface-soft) !important;
+    }
+    [data-testid="stCode"] code {-webkit-text-fill-color: var(--text) !important;}
+    [data-testid="stSelectbox"] svg, [data-testid="stNumberInput"] button svg {fill: var(--text) !important;}
+    [data-baseweb="select"] span {color: var(--text) !important;}
+    [data-testid="stSlider"] [role="slider"] {background: var(--accent) !important;}
+    .theme-icon {color: var(--muted); font-size: 1.08rem; line-height: 2.1rem; text-align: center; user-select: none;}
+    [data-testid="stToggle"] {padding-top: .12rem;}
+    [data-testid="stToggle"] label {justify-content: center;}
     .log-summary {background: var(--surface-soft); border: 1px solid var(--border); border-radius: 6px; padding: .9rem 1rem; color: var(--text); margin-bottom: 1rem;}
     .log-entry {display: grid; grid-template-columns: 105px 1fr 100px; gap: 1rem; align-items: center; padding: .85rem .2rem; border-bottom: 1px solid var(--border);}
     .log-entry:last-child {border-bottom: 0;}
@@ -190,9 +222,13 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-theme_left, theme_right = st.columns([8, 2])
-with theme_right:
-    st.toggle("Dark theme", key="dark_mode")
+theme_space, light_icon, theme_switch, dark_icon = st.columns([10, .35, .65, .35])
+with light_icon:
+    st.markdown('<div class="theme-icon" title="Light theme">☀️</div>', unsafe_allow_html=True)
+with theme_switch:
+    st.toggle("Theme", key="dark_mode", label_visibility="collapsed")
+with dark_icon:
+    st.markdown('<div class="theme-icon" title="Dark theme">🌙</div>', unsafe_allow_html=True)
 
 
 @st.cache_resource
