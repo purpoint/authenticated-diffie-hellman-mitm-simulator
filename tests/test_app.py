@@ -18,13 +18,13 @@ def test_dashboard_loads_without_exception() -> None:
     assert any("Key exchange playground" in tab.label for tab in app.tabs)
 
 
-def test_dark_theme_toggle_reruns_without_exception() -> None:
+def test_dark_theme_selector_reruns_without_exception() -> None:
     app = AppTest.from_file(APP_FILE).run(timeout=10)
-    app.toggle[0].set_value(True)
+    app.segmented_control[0].set_value("dark")
     app.run(timeout=10)
 
     assert not app.exception
-    assert app.toggle[0].value is True
+    assert app.segmented_control[0].value == "dark"
     assert "#0b1218" in app.markdown[0].value
 
 

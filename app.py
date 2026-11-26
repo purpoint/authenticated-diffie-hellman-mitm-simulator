@@ -44,8 +44,6 @@ theme = (
         "caution_bg": "#392f1d",
         "caution_border": "#786437",
         "caution_text": "#f5dda0",
-        "sun_icon": "#6f808a",
-        "moon_icon": "#8adad4",
     }
     if dark_mode
     else {
@@ -70,8 +68,6 @@ theme = (
         "caution_bg": "#faf2dc",
         "caution_border": "#e2d09e",
         "caution_text": "#765d1e",
-        "sun_icon": "#b7761d",
-        "moon_icon": "#8a979c",
     }
 )
 
@@ -173,19 +169,27 @@ st.markdown(
     [data-testid="stSelectbox"] svg, [data-testid="stNumberInput"] button svg {fill: var(--text) !important;}
     [data-baseweb="select"] span {color: var(--text) !important;}
     [data-testid="stSlider"] [role="slider"] {background: var(--accent) !important;}
-    .theme-glyph {
-        width: 30px; height: 30px; border-radius: 50%; display: flex;
-        align-items: center; justify-content: center; margin: 0 auto;
-        color: var(--muted); border: 1px solid transparent;
-        font-family: Georgia, serif; font-size: 1.08rem; line-height: 1;
-        font-weight: 700; user-select: none;
+    .st-key-theme_choice {display: flex; justify-content: flex-end;}
+    .st-key-theme_choice [data-testid="stButtonGroup"] {width: auto;}
+    .st-key-theme_choice [role="radiogroup"] {
+        gap: 3px; padding: 3px; overflow: visible;
+        border: 1px solid var(--border); border-radius: 999px;
+        background: var(--surface); box-shadow: 0 5px 18px rgba(0, 0, 0, .12);
     }
-    .theme-glyph-active {
-        color: var(--accent); background: var(--accent-soft); border-color: var(--border);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
+    .st-key-theme_choice button[data-variant="segmented_control"] {
+        width: 36px; min-width: 36px; height: 32px; min-height: 32px;
+        margin: 0 !important; padding: 0 !important;
+        border: 0 !important; border-radius: 999px !important;
+        background: transparent !important; color: var(--muted) !important;
     }
-    [data-testid="stToggle"] {padding-top: .1rem;}
-    [data-testid="stToggle"] label {justify-content: center; cursor: pointer;}
+    .st-key-theme_choice button[data-variant="segmented_control"]:hover {
+        background: var(--surface-soft) !important; color: var(--heading) !important;
+    }
+    .st-key-theme_choice button[data-variant="segmented_control"][data-selected] {
+        background: var(--accent-soft) !important; color: var(--accent) !important;
+        box-shadow: inset 0 0 0 1px var(--border);
+    }
+    .st-key-theme_choice button span {font-size: 1.05rem; line-height: 1;}
     .log-summary {background: var(--surface-soft); border: 1px solid var(--border); border-radius: 6px; padding: .9rem 1rem; color: var(--text); margin-bottom: 1rem;}
     .log-entry {display: grid; grid-template-columns: 105px 1fr 100px; gap: 1rem; align-items: center; padding: .85rem .2rem; border-bottom: 1px solid var(--border);}
     .log-entry:last-child {border-bottom: 0;}
@@ -236,23 +240,27 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-sun_state = "theme-glyph-active" if not dark_mode else ""
-moon_state = "theme-glyph-active" if dark_mode else ""
-theme_space, light_icon, theme_switch, dark_icon = st.columns(
-    [10, .34, .48, .34], gap=None, vertical_alignment="center"
+theme_space, theme_control = st.columns(
+    [10, 1], gap=None, vertical_alignment="center"
 )
-with light_icon:
-    st.markdown(
-        f'<div class="theme-glyph {sun_state}" title="Light theme">☼</div>',
-        unsafe_allow_html=True,
+with theme_control:
+    theme_choice = st.segmented_control(
+        "Color theme",
+        options=("light", "dark"),
+        default="dark" if dark_mode else "light",
+        required=True,
+        format_func=lambda choice: (
+            ":material/light_mode:" if choice == "light" else ":material/dark_mode:"
+        ),
+        key="theme_choice",
+        label_visibility="collapsed",
+        width="content",
     )
-with theme_switch:
-    st.toggle("Theme", key="dark_mode", label_visibility="collapsed")
-with dark_icon:
-    st.markdown(
-        f'<div class="theme-glyph {moon_state}" title="Dark theme">☾</div>',
-        unsafe_allow_html=True,
-    )
+
+selected_dark_mode = theme_choice == "dark"
+if selected_dark_mode != dark_mode:
+    st.session_state["dark_mode"] = selected_dark_mode
+    st.rerun()
 
 
 @st.cache_resource
